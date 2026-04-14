@@ -1,0 +1,28 @@
+# Секреты и локальные настройки (никогда не коммитить)
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env.local
+
+# SQLite (локальная разработка)
+matchme.db
+backend/uploads/
+*.db
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+
+node_modules/
+.next/
+out/
+
+*.log
+.DS_Store

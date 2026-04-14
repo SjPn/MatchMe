@@ -1,0 +1,19 @@
+# Черновик для Render.com Blueprint. Секреты (DATABASE_URL, JWT_SECRET) задавать
+# в Dashboard → Environment, не в этом файле.
+#
+# После привязки репозитория проверь root directory и команды под свой монорепо.
+
+services:
+  - type: web
+    name: matchme-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: sh -c "export PYTHONPATH=. && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHONPATH
+        value: "."
+      # Задай в UI Render:
+      # DATABASE_URL  — из Neon (postgresql://… или уже с +psycopg2)
+      # JWT_SECRET    — длинная случайная строка
+      # CORS_ORIGINS  — https://your-frontend.onrender.com

@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0a0a0b;
+  --foreground: #fafafa;
+  --mm-accent: #10b981;
+  --mm-accent-dim: rgba(16, 185, 129, 0.12);
+  --mm-ring: rgba(16, 185, 129, 0.35);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --background: #fafafa;
+    --foreground: #171717;
+  }
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply min-h-screen antialiased text-zinc-100;
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+    background-color: #070708;
+    background-image: radial-gradient(
+        ellipse 120% 80% at 50% -40%,
+        rgba(16, 185, 129, 0.09),
+        transparent 55%
+      ),
+      radial-gradient(ellipse 80% 50% at 100% 50%, rgba(39, 39, 42, 0.35), transparent 45%),
+      radial-gradient(ellipse 60% 40% at 0% 80%, rgba(39, 39, 42, 0.25), transparent 50%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-emerald-500/30 text-white;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-emerald-500/45 ring-offset-2 ring-offset-[#070708];
+  }
+}
+
+@layer components {
+  /** Основная колонка приложения (с отступом под нижнюю навигацию) */
+  .mm-page {
+    @apply min-h-screen text-zinc-100 px-4 sm:px-6 py-8 max-w-shell lg:max-w-shell-wide mx-auto pb-28;
+  }
+
+  /** Экран поста обсуждения: фиксированная высота + скролл внутри */
+  .mm-page-fixed {
+    @apply flex h-[100dvh] max-h-[100dvh] min-h-0 flex-col overflow-hidden text-zinc-100 px-4 sm:px-6 max-w-shell lg:max-w-shell-wide mx-auto pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))];
+  }
+
+  /** Центрированные формы входа / регистрации */
+  .mm-page-auth {
+    @apply min-h-screen flex flex-col justify-center px-6 text-zinc-100 max-w-md mx-auto py-12;
+  }
+
+  /** Полноэкранный чат (колонка + нижняя навигация) */
+  .mm-page-chat {
+    @apply min-h-screen flex flex-col text-zinc-100 max-w-shell lg:max-w-shell-wide mx-auto pb-28;
+  }
+
+  /** Онбординг / центрированные шаги */
+  .mm-page-centered {
+    @apply min-h-screen flex flex-col justify-center px-4 sm:px-6 text-zinc-100 max-w-shell lg:max-w-shell-wide mx-auto py-16;
+  }
+
+  .mm-h1 {
+    @apply text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-50;
+  }
+
+  .mm-h2 {
+    @apply text-xl font-semibold tracking-tight text-zinc-50;
+  }
+
+  .mm-lead {
+    @apply text-sm text-zinc-400 leading-relaxed;
+  }
+
+  .mm-input {
+    @apply w-full rounded-xl bg-zinc-900/90 border border-zinc-700/70 px-3.5 py-2.5 text-sm text-zinc-100
+      placeholder:text-zinc-500 shadow-inner shadow-black/20
+      transition-colors
+      focus:border-emerald-500/45 focus:ring-2 focus:ring-emerald-500/25;
+  }
+
+  .mm-input-search {
+    @apply mm-input flex-1;
+  }
+
+  .mm-label {
+    @apply flex flex-col gap-1.5 text-sm text-zinc-400;
+  }
+
+  .mm-btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-sm font-medium text-zinc-950
+      shadow-lg shadow-emerald-950/30 transition
+      hover:bg-emerald-400 active:scale-[0.98]
+      disabled:pointer-events-none disabled:opacity-45;
+  }
+
+  .mm-btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border border-zinc-600/90 bg-zinc-900/40 px-4 py-2.5 text-sm font-medium text-zinc-200
+      transition hover:border-zinc-500 hover:bg-zinc-800/60 active:scale-[0.98]
+      disabled:opacity-45;
+  }
+
+  .mm-btn-ghost {
+    @apply rounded-lg px-3 py-2 text-sm text-emerald-400/95 underline-offset-2 hover:text-emerald-300 hover:underline;
+  }
+
+  .mm-card {
+    @apply rounded-2xl border border-zinc-800/90 bg-zinc-900/45 p-5 shadow-mm-card backdrop-blur-sm
+      transition-colors duration-200
+      hover:border-emerald-500/25 hover:bg-zinc-900/75
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40;
+  }
+
+  .mm-card-static {
+    @apply rounded-2xl border border-zinc-800/90 bg-zinc-900/40 p-4 sm:p-5 shadow-mm-card backdrop-blur-sm;
+  }
+
+  .mm-panel {
+    @apply rounded-2xl border border-zinc-800/80 bg-zinc-900/35 p-4 backdrop-blur-sm;
+  }
+
+  .mm-link {
+    @apply text-emerald-400/95 underline-offset-2 hover:text-emerald-300 hover:underline;
+  }
+
+  .mm-badge {
+    @apply inline-flex items-center rounded-full border border-zinc-700/80 bg-zinc-900/60 px-2.5 py-0.5 text-[11px] font-medium text-zinc-400;
+  }
+
+  .mm-badge-accent {
+    @apply inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300/95;
+  }
+
+  .mm-divider {
+    @apply border-t border-zinc-800/80;
+  }
+
+  .mm-empty {
+    @apply text-center text-sm text-zinc-500 py-14;
+  }
+
+  .mm-error {
+    @apply text-sm text-red-400/95;
+  }
+
+  .mm-success {
+    @apply text-sm text-emerald-400/95;
+  }
+}
+
+@layer utilities {
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(63, 63, 70, 0.6) transparent;
+  }
+}
