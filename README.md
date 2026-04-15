@@ -94,9 +94,10 @@ DATABASE_URL=postgresql+psycopg2://USER:PASSWORD@HOST:5432/matchme
 ### Neon + Render.com (черновик)
 
 1. **Neon:** создать проект, скопировать connection string с `sslmode=require`. Хост с `-pooler` — для serverless/многих коротких соединений; приложение использует небольшой пул (см. `app/database.py`).
-2. **Render (web service, Python):** корень сервиса — каталог `backend`; build, например: `pip install -r requirements.txt`; start: поднять `PYTHONPATH=.` и выполнить миграции, затем uvicorn, например:  
-   `sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"`  
-   В Environment задать `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGINS` (URL опубликованного фронта на Render).
+2. **Render (web service, Python):** корень сервиса — каталог `backend`; build: `pip install -r requirements.txt`; start:  
+   `sh -c "export PYTHONPATH=. && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"`  
+   **Обязательно зафиксировать Python ≤3.13** (например **`PYTHON_VERSION=3.12.11`** в **Environment** или файл **`backend/.python-version`** с той же строкой — при `rootDir: backend` это корень сборки). Иначе Render по умолчанию берёт **Python 3.14**, у `pydantic-core` из `requirements.txt` нет готового wheel под эту версию, pip пытается **собрать из исходников** (Rust/maturin) и падает с **`Read-only file system`** / **`metadata-generation-failed`**. В **`render.yaml`** уже задан `PYTHON_VERSION` для Blueprint.  
+   Также задать: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGINS` (URL фронта на Render).
 3. **Фронт на Render (static или Next):** в `frontend` задать `BACKEND_URL` / `NEXT_PUBLIC_API_URL` под публичный URL API (см. `frontend/.env.local.example` и `next.config.mjs`).
 
 В репозитории есть пример **`render.yaml`** (без секретов) — можно подключить как Blueprint и дополнить переменными в UI Render.
