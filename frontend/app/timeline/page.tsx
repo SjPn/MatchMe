@@ -64,12 +64,6 @@ export default function TimelinePage() {
         } catch {
           // ignore
         }
-        try {
-          const a = await api<AxisOpt[]>("/axes");
-          setAxes(a);
-        } catch {
-          setAxes([]);
-        }
         await loadFirst();
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Ошибка");
@@ -79,6 +73,23 @@ export default function TimelinePage() {
       cancelled = true;
     };
   }, [router, loadFirst]);
+
+  useEffect(() => {
+    if (tab !== "topics") return;
+    if (axes.length) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        const a = await api<AxisOpt[]>("/axes");
+        if (!cancelled) setAxes(a);
+      } catch {
+        if (!cancelled) setAxes([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, axes.length]);
 
   useEffect(() => {
     let cancelled = false;

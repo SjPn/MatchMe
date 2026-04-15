@@ -67,33 +67,20 @@ def _author_out(u: User | None) -> ThreadAuthorOut:
     return ThreadAuthorOut(id=u.id if u else None, display_name=(u.display_name if u else None))
 
 
-def _post_out(
-    db: Session,
+def _post_out_fast(
     p: ThreadPost,
     *,
-    viewer_id: int | None = None,
-    counts: dict[int, dict[str, int]] | None = None,
-    liked_by_me: set[int] | None = None,
-    include_quote_preview: bool = True,
-    topics: dict[int, list[str]] | None = None,
+    viewer_id: int | None,
+    counts: dict[int, dict[str, int]],
+    liked_by_me: set[int],
+    topics: dict[int, list[str]],
+    users_by_id: dict[int, User],
+    media_by_post_id: dict[int, list[ThreadMedia]],
+    quote_preview_by_id: dict[int, ThreadPostOut | None],
 ) -> ThreadPostOut:
-    au = db.get(User, p.author_id) if p.author_id else None
-    media = db.query(ThreadMedia).filter(ThreadMedia.post_id == p.id).order_by(ThreadMedia.id.asc()).all()
-
-    c = (counts or {}).get(p.id, {})
-    quote_preview: ThreadPostOut | None = None
-    if include_quote_preview and p.quote_post_id:
-        qp = db.get(ThreadPost, p.quote_post_id)
-        if qp is not None and qp.visibility == "public":
-            quote_preview = _post_out(
-                db,
-                qp,
-                viewer_id=viewer_id,
-                counts=counts,
-                liked_by_me=liked_by_me,
-                include_quote_preview=False,
-            )
-
+    au = users_by_id.get(int(p.author_id)) if p.author_id else None
+    c = counts.get(p.id, {})
+    media = media_by_post_id.get(p.id, [])
     return ThreadPostOut(
         id=p.id,
         author=_author_out(au),
@@ -101,7 +88,7 @@ def _post_out(
         root_id=p.root_id,
         kind=getattr(p, "kind", "post"),
         quote_post_id=p.quote_post_id,
-        quote_preview=quote_preview,
+        quote_preview=quote_preview_by_id.get(p.id),
         body=p.body,
         created_at=p.created_at.isoformat(),
         is_system=p.is_system,
@@ -109,11 +96,106 @@ def _post_out(
         media=[_media_out(m) for m in media],
         reply_count=int(c.get("replies", 0)),
         like_count=int(c.get("likes", 0)),
-        liked_by_me=bool(viewer_id is not None and liked_by_me and p.id in liked_by_me),
+        liked_by_me=bool(viewer_id is not None and p.id in liked_by_me),
         repost_count=int(c.get("reposts", 0)),
         quote_count=int(c.get("quotes", 0)),
-        topic_axis_slugs=list((topics or {}).get(p.id, [])),
+        topic_axis_slugs=list(topics.get(p.id, [])),
     )
+
+
+def _build_posts_out(
+    db: Session,
+    posts: list[ThreadPost],
+    *,
+    viewer_id: int,
+    counts: dict[int, dict[str, int]] | None = None,
+    liked_by_me: set[int] | None = None,
+    topics: dict[int, list[str]] | None = None,
+    include_quote_preview: bool = True,
+) -> list[ThreadPostOut]:
+    if not posts:
+        return []
+
+    ids = [p.id for p in posts]
+    counts = counts or _collect_counts(db, ids)
+    liked_by_me = liked_by_me or _collect_liked_by_me(db, viewer_id, ids)
+    topics = topics or _collect_topics(db, ids)
+
+    author_ids = {int(p.author_id) for p in posts if p.author_id}
+    users = db.query(User).filter(User.id.in_(sorted(author_ids))).all() if author_ids else []
+    users_by_id: dict[int, User] = {int(u.id): u for u in users}
+
+    media_rows = (
+        db.query(ThreadMedia)
+        .filter(ThreadMedia.post_id.in_(ids))
+        .order_by(ThreadMedia.post_id.asc(), ThreadMedia.id.asc())
+        .all()
+    )
+    media_by_post_id: dict[int, list[ThreadMedia]] = {}
+    for m in media_rows:
+        media_by_post_id.setdefault(int(m.post_id), []).append(m)
+
+    quote_preview_by_id: dict[int, ThreadPostOut | None] = {pid: None for pid in ids}
+    if include_quote_preview:
+        quote_ids = {int(p.quote_post_id) for p in posts if p.quote_post_id}
+        if quote_ids:
+            quoted = (
+                db.query(ThreadPost)
+                .filter(ThreadPost.id.in_(sorted(quote_ids)), ThreadPost.visibility == "public")
+                .all()
+            )
+            quoted_by_id: dict[int, ThreadPost] = {int(q.id): q for q in quoted}
+
+            quoted_author_ids = {int(q.author_id) for q in quoted if q.author_id} - set(users_by_id.keys())
+            if quoted_author_ids:
+                more_users = db.query(User).filter(User.id.in_(sorted(quoted_author_ids))).all()
+                for u in more_users:
+                    users_by_id[int(u.id)] = u
+
+            quoted_media_rows = (
+                db.query(ThreadMedia)
+                .filter(ThreadMedia.post_id.in_(sorted(quote_ids)))
+                .order_by(ThreadMedia.post_id.asc(), ThreadMedia.id.asc())
+                .all()
+            )
+            for m in quoted_media_rows:
+                media_by_post_id.setdefault(int(m.post_id), []).append(m)
+
+            # We intentionally don't recurse quote-of-quote in previews.
+            quoted_counts = _collect_counts(db, list(quote_ids))
+            quoted_topics = _collect_topics(db, list(quote_ids))
+            quoted_liked = _collect_liked_by_me(db, viewer_id, list(quote_ids))
+            empty_quote_preview: dict[int, ThreadPostOut | None] = {}
+            for p in posts:
+                if not p.quote_post_id:
+                    continue
+                qp = quoted_by_id.get(int(p.quote_post_id))
+                if not qp:
+                    continue
+                quote_preview_by_id[p.id] = _post_out_fast(
+                    qp,
+                    viewer_id=viewer_id,
+                    counts=quoted_counts,
+                    liked_by_me=quoted_liked,
+                    topics=quoted_topics,
+                    users_by_id=users_by_id,
+                    media_by_post_id=media_by_post_id,
+                    quote_preview_by_id=empty_quote_preview,
+                )
+
+    return [
+        _post_out_fast(
+            p,
+            viewer_id=viewer_id,
+            counts=counts,
+            liked_by_me=liked_by_me,
+            topics=topics,
+            users_by_id=users_by_id,
+            media_by_post_id=media_by_post_id,
+            quote_preview_by_id=quote_preview_by_id,
+        )
+        for p in posts
+    ]
 
 
 def _collect_counts(db: Session, post_ids: list[int]) -> dict[int, dict[str, int]]:
@@ -266,9 +348,7 @@ def timeline(
     counts = _collect_counts(db, ids)
     liked = _collect_liked_by_me(db, viewer_id, ids)
     topics = _collect_topics(db, ids)
-    items = [
-        _post_out(db, p, viewer_id=viewer_id, counts=counts, liked_by_me=liked, topics=topics) for p in rows
-    ]
+    items = _build_posts_out(db, rows, viewer_id=viewer_id, counts=counts, liked_by_me=liked, topics=topics)
     return CursorPage(items=items, next_cursor=next_cursor)
 
 
@@ -315,16 +395,17 @@ def get_post_detail(
         next_cur = _encode_cursor(last.created_at, last.id)
         rq = rq[:replies_limit]
 
-    all_ids = [p.id] + [x.id for x in parents_posts] + [x.id for x in rq]
+    all_posts = [p] + parents_posts + rq
+    all_ids = [x.id for x in all_posts]
     counts = _collect_counts(db, all_ids)
     liked = _collect_liked_by_me(db, viewer_id, all_ids)
     topics = _collect_topics(db, all_ids)
+    outs = _build_posts_out(db, all_posts, viewer_id=viewer_id, counts=counts, liked_by_me=liked, topics=topics)
+    out_by_id = {o.id: o for o in outs}
     return ThreadPostDetailOut(
-        post=_post_out(db, p, viewer_id=viewer_id, counts=counts, liked_by_me=liked, topics=topics),
-        parents=[
-            _post_out(db, x, viewer_id=viewer_id, counts=counts, liked_by_me=liked, topics=topics) for x in parents_posts
-        ],
-        replies=[_post_out(db, x, viewer_id=viewer_id, counts=counts, liked_by_me=liked, topics=topics) for x in rq],
+        post=out_by_id[p.id],
+        parents=[out_by_id[x.id] for x in parents_posts],
+        replies=[out_by_id[x.id] for x in rq],
         next_replies_cursor=next_cur,
     )
 
@@ -361,7 +442,7 @@ def get_replies(
     liked = _collect_liked_by_me(db, viewer_id, ids)
     topics = _collect_topics(db, ids)
     return CursorPage(
-        items=[_post_out(db, x, viewer_id=viewer_id, counts=counts, liked_by_me=liked, topics=topics) for x in rows],
+        items=_build_posts_out(db, rows, viewer_id=viewer_id, counts=counts, liked_by_me=liked, topics=topics),
         next_cursor=next_cursor,
     )
 
@@ -451,7 +532,7 @@ def create_root_post(
     counts = _collect_counts(db, [p.id])
     liked = _collect_liked_by_me(db, user.id, [p.id])
     topics = _collect_topics(db, [p.id])
-    return _post_out(db, p, viewer_id=user.id, counts=counts, liked_by_me=liked, topics=topics)
+    return _build_posts_out(db, [p], viewer_id=user.id, counts=counts, liked_by_me=liked, topics=topics)[0]
 
 
 @router.post("/posts/{post_id}/reply", response_model=ThreadPostOut, status_code=201)
@@ -490,7 +571,8 @@ def reply_to_post(
     db.refresh(p)
     counts = _collect_counts(db, [p.id])
     liked = _collect_liked_by_me(db, user.id, [p.id])
-    return _post_out(db, p, viewer_id=user.id, counts=counts, liked_by_me=liked)
+    topics = _collect_topics(db, [p.id])
+    return _build_posts_out(db, [p], viewer_id=user.id, counts=counts, liked_by_me=liked, topics=topics)[0]
 
 
 @router.post("/posts/{post_id}/like", status_code=204)
@@ -559,7 +641,8 @@ def repost(
     db.refresh(p)
     counts = _collect_counts(db, [p.id, target.id])
     liked = _collect_liked_by_me(db, user.id, [p.id, target.id])
-    return _post_out(db, p, viewer_id=user.id, counts=counts, liked_by_me=liked)
+    topics = _collect_topics(db, [p.id, target.id])
+    return _build_posts_out(db, [p], viewer_id=user.id, counts=counts, liked_by_me=liked, topics=topics)[0]
 
 
 @router.post("/posts/{post_id}/quote", response_model=ThreadPostOut, status_code=201)
@@ -596,5 +679,6 @@ def quote(
     db.refresh(p)
     counts = _collect_counts(db, [p.id, target.id])
     liked = _collect_liked_by_me(db, user.id, [p.id, target.id])
-    return _post_out(db, p, viewer_id=user.id, counts=counts, liked_by_me=liked)
+    topics = _collect_topics(db, [p.id, target.id])
+    return _build_posts_out(db, [p], viewer_id=user.id, counts=counts, liked_by_me=liked, topics=topics)[0]
 

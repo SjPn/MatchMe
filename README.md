@@ -98,7 +98,8 @@ DATABASE_URL=postgresql+psycopg2://USER:PASSWORD@HOST:5432/matchme
    `sh -c "export PYTHONPATH=. && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"`  
    **Обязательно зафиксировать Python ≤3.13** (например **`PYTHON_VERSION=3.12.11`** в **Environment** или файл **`backend/.python-version`** с той же строкой — при `rootDir: backend` это корень сборки). Иначе Render по умолчанию берёт **Python 3.14**, у `pydantic-core` из `requirements.txt` нет готового wheel под эту версию, pip пытается **собрать из исходников** (Rust/maturin) и падает с **`Read-only file system`** / **`metadata-generation-failed`**. В **`render.yaml`** уже задан `PYTHON_VERSION` для Blueprint.  
    Также задать: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGINS` (URL фронта на Render).
-3. **Фронт на Render (static или Next):** в `frontend` задать `BACKEND_URL` / `NEXT_PUBLIC_API_URL` под публичный URL API (см. `frontend/.env.local.example` и `next.config.mjs`).
+3. **Фронт на Render (static или Next):** в `frontend` задать `BACKEND_URL` / `NEXT_PUBLIC_API_URL` под публичный URL API (см. `frontend/.env.local.example` и `next.config.mjs`).  
+   **502 Bad Gateway на `/feed` и др.:** запросы идут в Next (`/api/...`), Next проксирует на `BACKEND_URL`. Если **второй** сервис (Python API) ещё «спит» (бесплатный план отключает инстанс после простоя) или не успел подняться, прокси отдаёт **502** с HTML-страницей ошибки — это не обязательно traceback в uvicorn. Решения: подождать и обновить страницу; внешний **cron/ping** на `GET /health` раз в несколько минут, чтобы API не засыпал; платный инстанс **always on**; убедиться, что `BACKEND_URL` у фронта — точный HTTPS URL сервиса API на Render. В клиенте для GET включены **автоповторы** при 502/503/504 (см. `frontend/lib/api.ts`).
 
 В репозитории есть пример **`render.yaml`** (без секретов) — можно подключить как Blueprint и дополнить переменными в UI Render.
 
