@@ -14,8 +14,6 @@ export function apiUrl(path: string): string {
 
 const TOKEN_KEY = "matchme_token";
 
-let _warnedDirectApiUrl = false;
-
 export function getToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(TOKEN_KEY);
