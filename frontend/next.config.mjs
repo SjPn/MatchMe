@@ -10,6 +10,12 @@ const nextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      { source: "/discussions", destination: "/timeline?tab=topics", permanent: false },
+      { source: "/discussions/:path*", destination: "/timeline?tab=topics", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

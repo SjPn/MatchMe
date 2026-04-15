@@ -5,7 +5,18 @@ from app.config import settings
 from app.database import Base
 
 # Import models so metadata is populated
-from app.models import answer, group_room, moderation, question, social, user  # noqa: F401
+from app.models import (  # noqa: F401
+    answer,
+    discussion,
+    group_room,
+    moderation,
+    question,
+    social,
+    thread,
+    thread_social,
+    thread_topics,
+    user,
+)
 
 config = context.config
 if config.config_file_name is not None:

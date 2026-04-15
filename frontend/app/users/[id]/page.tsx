@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, getToken } from "@/lib/api";
+import { ThreadPostCard, ThreadPostOut as ThreadOut } from "@/components/ThreadPostCard";
 
 type Compare = {
   match_percent: number;
@@ -41,6 +42,54 @@ type UserPublic = {
   answers_hidden_from_others?: boolean;
 };
 
+function initialsFrom(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function publicImgSrc(url: string | null | undefined): string {
+  const u = (url || "").trim();
+  if (!u) return "";
+  if (u.startsWith("http://") || u.startsWith("https://")) return u;
+  if (u.startsWith("/api/")) return u;
+  if (u.startsWith("/")) return `/api${u}`;
+  return u;
+}
+
+function Avatar({ name, url }: { name: string; url?: string | null }) {
+  const initials = initialsFrom(name);
+  // eslint-disable-next-line @next/next/no-img-element
+  return url ? (
+    <img
+      src={publicImgSrc(url)}
+      alt={`Аватар ${name}`}
+      className="h-16 w-16 rounded-full object-cover border border-emerald-500/20 ring-2 ring-black/20 shadow-lg shadow-black/30"
+    />
+  ) : (
+    <div className="h-16 w-16 rounded-full border border-emerald-500/20 ring-2 ring-black/20 bg-gradient-to-br from-emerald-900/70 to-zinc-900 flex items-center justify-center shadow-lg shadow-black/30">
+      <span className="text-base font-semibold text-emerald-100/90">{initials}</span>
+    </div>
+  );
+}
+
+function parseMindLine(line: string): { axis: string; position: string } | null {
+  const s = (line || "").trim();
+  if (!s) return null;
+  // Typical format: «Axis»: скорее ... .
+  const m = s.match(/[«"](.*?)[»"]\s*:\s*(.+)$/);
+  if (m && m[1] && m[2]) {
+    return { axis: m[1].trim(), position: m[2].trim() };
+  }
+  // Fallback: split by first colon
+  const idx = s.indexOf(":");
+  if (idx > 0) {
+    return { axis: s.slice(0, idx).replace(/[«»"]/g, "").trim(), position: s.slice(idx + 1).trim() };
+  }
+  return { axis: "Ось", position: s };
+}
+
 export default function UserComparePage() {
   const params = useParams();
   const router = useRouter();
@@ -53,6 +102,11 @@ export default function UserComparePage() {
   const [reportReason, setReportReason] = useState("");
   const [modBusy, setModBusy] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
+  const [activityTab, setActivityTab] = useState<"posts" | "replies">("posts");
+  const [activity, setActivity] = useState<ThreadOut[]>([]);
+  const [activityNext, setActivityNext] = useState<string | null>(null);
+  const [activityLoading, setActivityLoading] = useState(false);
+  // meId isn't used beyond the self-redirect check, keep only setter-less local state.
 
   useEffect(() => {
     if (!getToken()) {
@@ -62,10 +116,12 @@ export default function UserComparePage() {
     if (!Number.isFinite(id)) return;
     (async () => {
       try {
-        const [u, c] = await Promise.all([
-          api<UserPublic>(`/users/${id}`),
-          api<Compare>(`/users/${id}/compare`),
-        ]);
+        const me = await api<{ id: number }>("/auth/me");
+        if (me.id === id) {
+          router.replace("/summary");
+          return;
+        }
+        const [u, c] = await Promise.all([api<UserPublic>(`/users/${id}`), api<Compare>(`/users/${id}/compare`)]);
         setUserInfo(u);
         setData(c);
       } catch (e) {
@@ -73,6 +129,36 @@ export default function UserComparePage() {
       }
     })();
   }, [id, router]);
+
+  async function loadActivity(first = false) {
+    if (!Number.isFinite(id)) return;
+    setActivityLoading(true);
+    try {
+      const cursor = first ? null : activityNext;
+      const qs = new URLSearchParams();
+      qs.set("kind", activityTab);
+      qs.set("limit", "12");
+      if (cursor) qs.set("cursor", cursor);
+      const out = await api<{ items: ThreadOut[]; next_cursor: string | null }>(`/users/${id}/threads?${qs.toString()}`);
+      if (first) {
+        setActivity(out.items);
+      } else {
+        setActivity((prev) => [...prev, ...out.items]);
+      }
+      setActivityNext(out.next_cursor);
+    } catch {
+      // keep main page usable even if activity fails
+    } finally {
+      setActivityLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    setActivity([]);
+    setActivityNext(null);
+    void loadActivity(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, activityTab]);
 
   async function onLike() {
     setMsg(null);
@@ -144,46 +230,63 @@ export default function UserComparePage() {
   return (
     <main className="mm-page scrollbar-thin">
       <Link href="/feed" className="text-sm text-zinc-500 hover:text-zinc-300">
-        ← К ленте
+        ← Назад
       </Link>
-      <h1 className="text-2xl font-semibold mt-6">
-        {userInfo?.display_name ? userInfo.display_name : "Пользователь"} · сравнение
-      </h1>
-      {userInfo?.identity_verified ? (
-        <p className="text-xs text-sky-400/90 mt-1">✓ Отметка «фото загружено» в профиле</p>
-      ) : null}
-      {userInfo?.answers_hidden_from_others ? (
-        <p className="text-xs text-zinc-500 mt-2 max-w-prose">
-          Ответы на вопросы теста скрыты; вы видите только сводку по осям и совпадение — так честнее отвечать
-          всем.
-        </p>
-      ) : null}
-      <p className="text-4xl font-bold text-emerald-400 mt-2">{data.match_percent}%</p>
-      {data.weighted_active && data.base_match_percent != null ? (
-        <p className="text-sm text-zinc-500 mt-1">
-          Без весов из настроек ленты было бы ~{data.base_match_percent}%
-        </p>
-      ) : null}
-      {data.dealbreaker_hit ? (
-        <p className="mt-2 text-sm text-red-400/90">
-          Сработал dealbreaker: по выбранной вами оси слишком большое расхождение — процент сильно
-          ограничен.
-        </p>
-      ) : null}
 
-      {(data.soft_penalty_notes ?? []).length ? (
-        <ul className="mt-2 text-xs text-amber-500/90 space-y-0.5">
-          {(data.soft_penalty_notes ?? []).map((n) => (
-            <li key={n}>⚠ {n}</li>
-          ))}
-        </ul>
-      ) : null}
+      <section className="mt-5 mm-card-static">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-semibold text-zinc-50">
+              {userInfo?.display_name ? userInfo.display_name : "Пользователь"}
+            </h1>
+            <p className="text-sm text-zinc-500 mt-1">Совпадение по ценностям</p>
+            <p className="text-4xl font-bold text-emerald-400 mt-2">{data.match_percent}%</p>
+            {data.weighted_active && data.base_match_percent != null ? (
+              <p className="text-xs text-zinc-500 mt-2">
+                Без весов из настроек ленты было бы ~{data.base_match_percent}%
+              </p>
+            ) : null}
+          </div>
 
-      {data.match_headline ? (
-        <p className="mt-4 text-sm text-zinc-300 leading-relaxed border-l-2 border-emerald-500/40 pl-3">
-          {data.match_headline}
-        </p>
-      ) : null}
+          <div className="shrink-0 flex flex-col items-end gap-2">
+            <Avatar name={userInfo?.display_name || "Пользователь"} url={userInfo?.avatar_url} />
+            {userInfo?.identity_verified ? (
+              <span className="mm-badge-accent">✓ фото загружено</span>
+            ) : (
+              <span className="mm-badge">без фото</span>
+            )}
+          </div>
+        </div>
+
+        {data.dealbreaker_hit ? (
+          <p className="mt-3 text-sm text-red-400/90">
+            Сработал dealbreaker: по выбранной вами оси слишком большое расхождение — процент сильно ограничен.
+          </p>
+        ) : null}
+
+        {(data.soft_penalty_notes ?? []).length ? (
+          <ul className="mt-3 text-xs text-amber-500/90 space-y-0.5">
+            {(data.soft_penalty_notes ?? []).map((n) => (
+              <li key={n}>⚠ {n}</li>
+            ))}
+          </ul>
+        ) : null}
+
+        {data.match_headline ? (
+          <p className="mt-4 text-sm text-zinc-300 leading-relaxed border-l-2 border-emerald-500/40 pl-3">
+            {data.match_headline}
+          </p>
+        ) : null}
+
+        {userInfo?.answers_hidden_from_others ? (
+          <p className="text-xs text-zinc-500 mt-4 max-w-prose">
+            Ответы на вопросы теста скрыты; вы видите только сводку по осям и совпадение — так честнее отвечать
+            всем.
+          </p>
+        ) : null}
+      </section>
+
+      {/* moved into the profile header card above */}
 
       {userInfo?.about_me ? (
         <section className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
@@ -195,89 +298,157 @@ export default function UserComparePage() {
       {(data.their_mind_lines ?? []).length ? (
         <section className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
           <p className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Как этот человек думает</p>
-          <ul className="space-y-1 text-sm text-zinc-300">
-            {(data.their_mind_lines ?? []).map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
+          <div className="flex flex-wrap gap-2">
+            {(data.their_mind_lines ?? [])
+              .map((line) => ({ raw: line, p: parseMindLine(line) }))
+              .filter((x) => x.p)
+              .map(({ raw, p }) => (
+                <span
+                  key={raw}
+                  className="inline-flex items-center gap-2 rounded-full border border-zinc-700/80 bg-zinc-950/30 px-3 py-1 text-xs text-zinc-300"
+                  title={raw}
+                >
+                  <span className="text-zinc-400">{p!.axis}</span>
+                  <span className="text-zinc-600">·</span>
+                  <span className="text-emerald-200/90">{p!.position}</span>
+                </span>
+              ))}
+          </div>
         </section>
       ) : null}
 
-      {(data.your_mind_lines ?? []).length ? (
-        <section className="mt-4 rounded-xl border border-zinc-800/80 bg-zinc-950/40 p-4">
-          <p className="text-xs uppercase tracking-wide text-zinc-500 mb-2">У вас для сравнения</p>
-          <ul className="space-y-1 text-sm text-zinc-400">
-            {(data.your_mind_lines ?? []).map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
-      {(data.shared_traits ?? []).length ? (
-        <section className="mt-8">
-          <h2 className="text-sm uppercase tracking-wide text-emerald-500 mb-3">Общие черты</h2>
-          <ul className="space-y-2">
-            {(data.shared_traits ?? []).map((t) => (
-              <li
-                key={t.slug + t.summary}
-                className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-sm space-y-1"
-              >
-                <p className="font-medium text-emerald-200/90">{t.axis}</p>
-                <p className="text-zinc-300 text-xs leading-relaxed">{t.summary}</p>
-                {t.strength === "high" ? (
-                  <span className="text-[10px] uppercase tracking-wide text-emerald-500/80">сильное сходство</span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      {/* NOTE: "У вас для сравнения" intentionally hidden per product decision. */}
 
       <section className="mt-8">
-        <h2 className="text-sm uppercase tracking-wide text-emerald-500/60 mb-3">Кратко по осям</h2>
-        <ul className="space-y-2">
-          {data.agreements.map((x) => (
-            <li key={x.slug + x.detail} className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-sm">
-              {x.detail}
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm uppercase tracking-wide text-zinc-500">Активность</h2>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setActivityTab("posts")}
+              className={`rounded-full px-3 py-1 text-xs border ${
+                activityTab === "posts"
+                  ? "border-emerald-500/45 bg-emerald-500/10 text-emerald-200"
+                  : "border-zinc-700 text-zinc-400"
+              }`}
+            >
+              Посты
+            </button>
+            <button
+              type="button"
+              onClick={() => setActivityTab("replies")}
+              className={`rounded-full px-3 py-1 text-xs border ${
+                activityTab === "replies"
+                  ? "border-emerald-500/45 bg-emerald-500/10 text-emerald-200"
+                  : "border-zinc-700 text-zinc-400"
+              }`}
+            >
+              Комментарии
+            </button>
+          </div>
+        </div>
+
+        <ul className="mt-4 space-y-3">
+          {activity.map((p) => (
+            <li key={p.id}>
+              <ThreadPostCard post={p} compact />
             </li>
           ))}
-          {!data.agreements.length && (
-            <li className="text-zinc-500 text-sm">Пока нет явных совпадений по осям.</li>
-          )}
         </ul>
+
+        {!activity.length && !activityLoading ? (
+          <p className="mm-empty mt-3">
+            {activityTab === "posts" ? "Пока нет постов в ленте." : "Пока нет комментариев."}
+          </p>
+        ) : null}
+
+        {activityNext ? (
+          <button
+            type="button"
+            disabled={activityLoading}
+            className="mt-4 mm-btn-secondary w-full py-3"
+            onClick={() => void loadActivity(false)}
+          >
+            {activityLoading ? "…" : "Показать ещё"}
+          </button>
+        ) : null}
       </section>
 
-      {(data.conversation_prompts ?? []).length ? (
-        <section className="mt-8">
-          <h2 className="text-sm uppercase tracking-wide text-sky-500 mb-3">Повод для разговора</h2>
-          <ul className="space-y-3">
-            {(data.conversation_prompts ?? []).map((p) => (
-              <li
-                key={p.slug + p.prompt}
-                className="rounded-lg bg-sky-500/10 border border-sky-500/30 px-3 py-3 text-sm"
-              >
-                <p className="text-xs text-sky-500/80 mb-1">{p.axis}</p>
-                <p className="text-zinc-200 leading-relaxed">{p.prompt}</p>
-                {p.note ? <p className="text-xs text-zinc-500 mt-2">{p.note}</p> : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
-
       <section className="mt-8">
-        <h2 className="text-sm uppercase tracking-wide text-amber-500 mb-3">Сильные различия</h2>
-        <ul className="space-y-2">
-          {data.differences.map((x) => (
-            <li key={x.slug + x.detail} className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-sm">
-              {x.detail}
-            </li>
-          ))}
-          {!data.differences.length && (
-            <li className="text-zinc-500 text-sm">Сильных расхождений не видно.</li>
-          )}
-        </ul>
+        <details className="rounded-2xl border border-zinc-800 bg-zinc-900/25 p-4">
+          <summary className="cursor-pointer select-none text-sm font-medium text-zinc-200">
+            Показать детали по осям
+          </summary>
+          <div className="mt-4 space-y-8">
+            {(data.shared_traits ?? []).length ? (
+              <section>
+                <h2 className="text-sm uppercase tracking-wide text-emerald-500 mb-3">Общие черты</h2>
+                <ul className="space-y-2">
+                  {(data.shared_traits ?? []).map((t) => (
+                    <li
+                      key={t.slug + t.summary}
+                      className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-sm space-y-1"
+                    >
+                      <p className="font-medium text-emerald-200/90">{t.axis}</p>
+                      <p className="text-zinc-300 text-xs leading-relaxed">{t.summary}</p>
+                      {t.strength === "high" ? (
+                        <span className="text-[10px] uppercase tracking-wide text-emerald-500/80">сильное сходство</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            <section>
+              <h2 className="text-sm uppercase tracking-wide text-emerald-500/60 mb-3">Кратко по осям</h2>
+              <ul className="space-y-2">
+                {data.agreements.map((x) => (
+                  <li
+                    key={x.slug + x.detail}
+                    className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-sm"
+                  >
+                    {x.detail}
+                  </li>
+                ))}
+                {!data.agreements.length && <li className="text-zinc-500 text-sm">Пока нет явных совпадений по осям.</li>}
+              </ul>
+            </section>
+
+            {(data.conversation_prompts ?? []).length ? (
+              <section>
+                <h2 className="text-sm uppercase tracking-wide text-sky-500 mb-3">Повод для разговора</h2>
+                <ul className="space-y-3">
+                  {(data.conversation_prompts ?? []).map((p) => (
+                    <li
+                      key={p.slug + p.prompt}
+                      className="rounded-lg bg-sky-500/10 border border-sky-500/30 px-3 py-3 text-sm"
+                    >
+                      <p className="text-xs text-sky-500/80 mb-1">{p.axis}</p>
+                      <p className="text-zinc-200 leading-relaxed">{p.prompt}</p>
+                      {p.note ? <p className="text-xs text-zinc-500 mt-2">{p.note}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            <section>
+              <h2 className="text-sm uppercase tracking-wide text-amber-500 mb-3">Сильные различия</h2>
+              <ul className="space-y-2">
+                {data.differences.map((x) => (
+                  <li
+                    key={x.slug + x.detail}
+                    className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-2 text-sm"
+                  >
+                    {x.detail}
+                  </li>
+                ))}
+                {!data.differences.length && <li className="text-zinc-500 text-sm">Сильных расхождений не видно.</li>}
+              </ul>
+            </section>
+          </div>
+        </details>
       </section>
 
       {msg && <p className="mt-6 text-sm text-emerald-400">{msg}</p>}

@@ -8,15 +8,16 @@ from sqlalchemy import inspect
 from app.api.routes import (
     answers,
     auth,
+    avatar,
     chat,
     compare,
-    discussion,
     feed,
     group_chat,
     likes,
     moderation,
     profile,
     questions,
+    thread_posts,
     users,
 )
 from app.config import settings
@@ -58,8 +59,9 @@ app.include_router(auth.router)
 app.include_router(questions.router)
 app.include_router(answers.router)
 app.include_router(profile.router)
+app.include_router(avatar.router)
 app.include_router(feed.router)
-app.include_router(discussion.router)
+app.include_router(thread_posts.router)
 app.include_router(compare.router)
 app.include_router(likes.router)
 app.include_router(chat.router)

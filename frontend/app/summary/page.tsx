@@ -34,6 +34,15 @@ type Me = {
   identity_verified?: boolean;
 };
 
+function publicImgSrc(url: string): string {
+  const u = (url || "").trim();
+  if (!u) return "";
+  if (u.startsWith("http://") || u.startsWith("https://")) return u;
+  if (u.startsWith("/api/")) return u;
+  if (u.startsWith("/")) return `/api${u}`;
+  return u;
+}
+
 export default function SummaryPage() {
   const router = useRouter();
   const [data, setData] = useState<Summary | null>(null);
@@ -44,6 +53,7 @@ export default function SummaryPage() {
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [verifyBusy, setVerifyBusy] = useState(false);
+  const [avatarBusy, setAvatarBusy] = useState(false);
 
   useEffect(() => {
     if (!getToken()) {
@@ -110,6 +120,24 @@ export default function SummaryPage() {
     }
   }
 
+  async function onAvatarFile(f: File | null) {
+    if (!f) return;
+    setSaveMsg(null);
+    setAvatarBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", f);
+      const next = await postFormData<Me>("/me/avatar", fd);
+      setMe(next);
+      setAvatarUrl(next.avatar_url ?? "");
+      setSaveMsg("Аватар обновлён.");
+    } catch (err) {
+      setSaveMsg(err instanceof Error ? err.message : "Ошибка загрузки");
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
+
   if (error) {
     return (
       <main className="min-h-screen flex flex-col items-center justify-center px-6 text-red-400">
@@ -172,6 +200,64 @@ export default function SummaryPage() {
         </div>
       ) : null}
 
+      {me ? (
+        <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
+          <p className="text-sm text-zinc-300">Аватар</p>
+          <p className="text-xs text-zinc-500 mt-1">
+            Это картинка, которая показывается в ленте и на вашей странице. Не путать с селфи для отметки доверия.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            {me.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={publicImgSrc(me.avatar_url)}
+                alt="Ваш аватар"
+                className="h-14 w-14 rounded-full object-cover border border-emerald-500/20"
+              />
+            ) : (
+              <span className="mm-badge">нет аватара</span>
+            )}
+            <input
+              id="summary-avatar-file"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="sr-only"
+              disabled={avatarBusy}
+              onChange={(e) => void onAvatarFile(e.target.files?.[0] ?? null)}
+            />
+            <label
+              htmlFor="summary-avatar-file"
+              className="text-xs text-emerald-400 cursor-pointer underline-offset-2 hover:underline"
+            >
+              {avatarBusy ? "Загрузка…" : "Сменить аватар"}
+            </label>
+            {me.avatar_url ? (
+              <button
+                type="button"
+                className="text-xs text-zinc-500 hover:text-zinc-300 underline-offset-2 hover:underline"
+                disabled={avatarBusy}
+                onClick={async () => {
+                  setAvatarBusy(true);
+                  setSaveMsg(null);
+                  try {
+                    const next = await api<Me>("/me/avatar", { method: "DELETE" });
+                    setMe(next);
+                    setAvatarUrl(next.avatar_url ?? "");
+                    setSaveMsg("Аватар удалён.");
+                  } catch (err) {
+                    setSaveMsg(err instanceof Error ? err.message : "Ошибка");
+                  } finally {
+                    setAvatarBusy(false);
+                  }
+                }}
+              >
+                Удалить
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       {(data.badges ?? []).length ? (
         <div className="mt-6 flex flex-wrap gap-2">
           {(data.badges ?? []).includes("transparent_axes") ? (
@@ -230,7 +316,7 @@ export default function SummaryPage() {
               Аватар в ленте
             </label>
             <p className="text-xs text-zinc-600 mt-1">
-              Прямая ссылка на картинку (https…). Очистите поле и сохраните, чтобы убрать.
+              Прямая ссылка (https…). Если вы загрузили аватар выше — это поле можно оставить пустым.
             </p>
             <input
               id="summary-avatar-url"

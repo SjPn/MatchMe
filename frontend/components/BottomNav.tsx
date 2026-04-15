@@ -10,6 +10,27 @@ const items: {
   icon: (active: boolean) => JSX.Element;
 }[] = [
   {
+    href: "/timeline",
+    label: "Лента",
+    match: (p) => p === "/timeline" || p.startsWith("/posts/") || p.startsWith("/threads"),
+    icon: (active) => (
+      <svg
+        className={`h-6 w-6 ${active ? "text-emerald-400" : "text-zinc-500"}`}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={active ? 2 : 1.5}
+        aria-hidden
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M3 12l9-9 9 9M4.5 10.5V21a.75.75 0 00.75.75h4.5V15a.75.75 0 01.75-.75h3a.75.75 0 01.75.75v6.75h4.5A.75.75 0 0019.5 21V10.5"
+        />
+      </svg>
+    ),
+  },
+  {
     href: "/feed",
     label: "Люди",
     match: (p) => p === "/feed" || p.startsWith("/users/"),
@@ -26,27 +47,6 @@ const items: {
           strokeLinecap="round"
           strokeLinejoin="round"
           d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
-        />
-      </svg>
-    ),
-  },
-  {
-    href: "/discussions",
-    label: "Темы",
-    match: (p) => p.startsWith("/discussions"),
-    icon: (active) => (
-      <svg
-        className={`h-6 w-6 ${active ? "text-emerald-400" : "text-zinc-500"}`}
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={active ? 2 : 1.5}
-        aria-hidden
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"
         />
       </svg>
     ),

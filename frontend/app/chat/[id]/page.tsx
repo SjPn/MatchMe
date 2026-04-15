@@ -262,7 +262,13 @@ export default function ChatPage() {
           ←
         </Link>
         <div className="flex flex-col min-w-0 flex-1">
-          <span className="font-medium truncate">{peerName || "Чат"}</span>
+          {otherUserId != null ? (
+            <Link href={`/users/${otherUserId}`} className="font-medium truncate hover:text-emerald-300">
+              {peerName || "Чат"}
+            </Link>
+          ) : (
+            <span className="font-medium truncate">{peerName || "Чат"}</span>
+          )}
           {peerTyping && (
             <span className="text-xs text-zinc-500 truncate">Собеседник печатает…</span>
           )}

@@ -172,7 +172,13 @@ export default function ConversationsPage() {
                 className="flex justify-between gap-3 mm-card py-4"
               >
                 <span className="font-medium">
-                  {r.other_display_name || `Пользователь #${r.other_user_id}`}
+                  <Link
+                    href={`/users/${r.other_user_id}`}
+                    className="hover:text-emerald-300"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {r.other_display_name || `Пользователь #${r.other_user_id}`}
+                  </Link>
                 </span>
                 {r.last_activity_at ? (
                   <span className="text-xs text-zinc-500 shrink-0">{formatTs(r.last_activity_at)}</span>
