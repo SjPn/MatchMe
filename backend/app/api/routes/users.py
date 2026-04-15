@@ -87,14 +87,7 @@ def get_user_threads(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Blocked")
 
     # Reuse timeline helpers to keep post shape consistent
-    from app.api.routes.thread_posts import (
-        _collect_counts,
-        _collect_liked_by_me,
-        _collect_topics,
-        _decode_cursor,
-        _encode_cursor,
-        _post_out,
-    )
+    from app.api.routes.thread_posts import _build_posts_out, _decode_cursor, _encode_cursor
 
     target = me if user_id == me.id else db.get(User, user_id)
     if target is None:
@@ -118,10 +111,6 @@ def get_user_threads(
         next_cursor = _encode_cursor(last.created_at, last.id)
         rows = rows[:limit]
 
-    ids = [p.id for p in rows]
-    counts = _collect_counts(db, ids)
-    liked = _collect_liked_by_me(db, me.id, ids)
-    topics = _collect_topics(db, ids)
-    items = [_post_out(db, p, viewer_id=me.id, counts=counts, liked_by_me=liked, topics=topics) for p in rows]
+    items = _build_posts_out(db, rows, viewer_id=me.id)
     return CursorPage(items=items, next_cursor=next_cursor)
 
