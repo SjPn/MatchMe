@@ -24,15 +24,17 @@ def _answer_scalar(answer: Answer, q: Question) -> float | None:
     if q.qtype == "likert" and answer.value_numeric is not None:
         return _normalize_likert(float(answer.value_numeric), q)
     if q.qtype == "binary":
+        inv = bool(getattr(q, "choice_score_invert", False))
         if answer.value_choice == "a":
-            return 0.0
+            return 1.0 if inv else 0.0
         if answer.value_choice == "b":
-            return 1.0
+            return 0.0 if inv else 1.0
     if q.qtype == "forced_choice":
+        inv = bool(getattr(q, "choice_score_invert", False))
         if answer.value_choice == "a":
-            return 0.0
+            return 1.0 if inv else 0.0
         if answer.value_choice == "b":
-            return 1.0
+            return 0.0 if inv else 1.0
     return None
 
 

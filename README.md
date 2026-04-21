@@ -80,7 +80,7 @@ python scripts/diagnose_group_cohorts.py
 
 Пороги `group_*` задаются в `app/config.py` или через переменные окружения (см. `.env.example`). После сида со **случайными** ответами комнаты могут не создаваться — ослабьте пороги или добавьте пользователей с близкими ответами.
 
-Миграции: репозиторий содержит цепочку Alembic (в т.ч. групповые таблицы `0007`). Выполняй **`alembic upgrade head`** перед продом и после `git pull`. Ревизия **`0001`** создаёт начальную схему через **`Base.metadata.create_all()`** по **текущим** моделям, поэтому на пустой БД часть таблиц (в т.ч. `thread_posts`) может появиться уже на шаге `0001`; последующие ревизии, дублирующие DDL, сделаны **идемпотентными** (например `0013` не падает с `DuplicateTable`). Ревизия **`0017`** — таблицы **`conversation_read_states`** / **`group_room_read_states`** для непрочитанных в чатах. На **SQLite** при старте API дополнительно подтягиваются недостающие колонки/таблицы (`app/database.py` + `lifespan`), но **вопросы** всё равно нужно залить через `python seed.py`. На **PostgreSQL** без миграций не обойтись.
+Миграции: репозиторий содержит цепочку Alembic (в т.ч. групповые таблицы `0007`). Выполняй **`alembic upgrade head`** перед продом и после `git pull`. Ревизия **`0001`** создаёт начальную схему через **`Base.metadata.create_all()`** по **текущим** моделям, поэтому на пустой БД часть таблиц (в т.ч. `thread_posts`) может появиться уже на шаге `0001`; последующие ревизии, дублирующие DDL, сделаны **идемпотентными** (например `0013` не падает с `DuplicateTable`). Ревизия **`0017`** — таблицы **`conversation_read_states`** / **`group_room_read_states`** для непрочитанных в чатах; **`0018`** — колонка **`choice_score_invert`** у вопросов. На **SQLite** при старте API дополнительно подтягиваются недостающие колонки/таблицы (`app/database.py` + `lifespan`), но **вопросы** всё равно нужно залить через `python seed.py`. На **Render** это уже входит в **`startCommand`** из **`render.yaml`** (после `alembic`). На **PostgreSQL** без миграций не обойтись.
 
 - Swagger: http://127.0.0.1:8000/docs  
 - Файл БД: `backend/matchme.db` (появится после миграций)
@@ -102,8 +102,9 @@ DATABASE_URL=postgresql+psycopg2://USER:PASSWORD@HOST:5432/matchme
 ### Neon + Render.com (черновик)
 
 1. **Neon:** создать проект, скопировать connection string с `sslmode=require`. Хост с `-pooler` — для serverless/многих коротких соединений; приложение использует небольшой пул (см. `app/database.py`).
-2. **Render (web service, Python):** корень сервиса — каталог `backend`; build: `pip install -r requirements.txt`; start:  
-   `sh -c "export PYTHONPATH=. && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"`  
+2. **Render (web service, Python):** корень сервиса — каталог `backend`; build: `pip install -r requirements.txt`; start (как в **`render.yaml`**):  
+   `sh -c "export PYTHONPATH=. && alembic upgrade head && python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT"`  
+   Так при каждом деплое поднимается схема БД (**Alembic**), затем подтягиваются **оси и вопросы онбординга** (`seed.py`). Если в Dashboard у сервиса **другая** `startCommand` без `seed.py` — после смены вопросов/осей один раз выполни в **Render Shell** из каталога с кодом: `python seed.py` (или синхронизируй команду старта с репозиторием).  
    **Обязательно зафиксировать Python ≤3.13** (например **`PYTHON_VERSION=3.12.11`** в **Environment** или файл **`backend/.python-version`** с той же строкой — при `rootDir: backend` это корень сборки). Иначе Render по умолчанию берёт **Python 3.14**, у `pydantic-core` из `requirements.txt` нет готового wheel под эту версию, pip пытается **собрать из исходников** (Rust/maturin) и падает с **`Read-only file system`** / **`metadata-generation-failed`**. В **`render.yaml`** уже задан `PYTHON_VERSION` для Blueprint.  
    Также задать: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGINS` (URL фронта на Render).
 3. **Фронт на Render (static или Next):** в `frontend` задать `BACKEND_URL` / `NEXT_PUBLIC_API_URL` под публичный URL API (см. `frontend/.env.local.example` и `next.config.mjs`).  

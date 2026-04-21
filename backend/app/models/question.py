@@ -37,6 +37,8 @@ class Question(Base):
     likert_right_label: Mapped[str | None] = mapped_column(Text, nullable=True)
     # bipolar: слева min на шкале UI; если True — левый край = likert_max (сильнее «левый» полюс в смысле вопроса)
     likert_bipolar_invert: Mapped[bool] = mapped_column(Boolean, default=False)
+    # binary/forced_choice: по умолчанию a→0, b→1; если True — a→1, b→0 (когда текст A ближе к «высокому» полюсу оси)
+    choice_score_invert: Mapped[bool] = mapped_column(Boolean, default=False)
     # JSON-массив строк: индекс i = подсказка для value likert_min + i
     likert_hints_json: Mapped[str | None] = mapped_column(Text, nullable=True)
 

@@ -9,7 +9,8 @@ services:
     runtime: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: sh -c "export PYTHONPATH=. && alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    # seed.py идемпотентен: при актуальном онбординге только обновляет подписи Likert; при смене набора вопросов — подменит pack и сбросит шаг у затронутых пользователей
+    startCommand: sh -c "export PYTHONPATH=. && alembic upgrade head && python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.11"
