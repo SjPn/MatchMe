@@ -61,6 +61,8 @@ $env:PYTHONPATH = "."
 alembic upgrade head
 python seed.py
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+На **Linux/Render** ту же последовательность без опечаток у `$PORT` даёт **`bash scripts/render_start.sh`** из каталога `backend` (там `PORT` берётся из окружения; локально для dev удобнее команды выше с фиксированным портом).
 ```
 
 Или **`serve.bat`** / **`serve.ps1`** в корне `backend` — они делают `cd` в эту папку и запускают uvicorn.
@@ -103,8 +105,8 @@ DATABASE_URL=postgresql+psycopg2://USER:PASSWORD@HOST:5432/matchme
 
 1. **Neon:** создать проект, скопировать connection string с `sslmode=require`. Хост с `-pooler` — для serverless/многих коротких соединений; приложение использует небольшой пул (см. `app/database.py`).
 2. **Render (web service, Python):** корень сервиса — каталог `backend`; build: `pip install -r requirements.txt`; start (как в **`render.yaml`**):  
-   `sh -c "export PYTHONPATH=. && alembic upgrade head && python seed.py && uvicorn app.main:app --host 0.0.0.0 --port $PORT"`  
-   Так при каждом деплое поднимается схема БД (**Alembic**), затем подтягиваются **оси и вопросы онбординга** (`seed.py`). Если в Dashboard у сервиса **другая** `startCommand` без `seed.py` — после смены вопросов/осей один раз выполни в **Render Shell** из каталога с кодом: `python seed.py` (или синхронизируй команду старта с репозиторием).  
+   `bash scripts/render_start.sh` (см. `backend/scripts/render_start.sh`)  
+   В репозитории команда старта вызывает **`bash scripts/render_start.sh`** (миграции → `seed.py` → uvicorn), чтобы не ловить опечатки в длинной строке `sh -c "…$PORT…"`. Если в **Dashboard** вручную задана своя строка и деплой падает с **`Invalid value for '--port': '10000.'`**, почти наверняка в конце лишние символы вроде **`$PORT".'`** вместо **`$PORT"`** — исправь или поставь **`bash scripts/render_start.sh`**. Если `startCommand` без `seed.py` — после смены вопросов один раз в **Render Shell**: `python seed.py`.  
    **Обязательно зафиксировать Python ≤3.13** (например **`PYTHON_VERSION=3.12.11`** в **Environment** или файл **`backend/.python-version`** с той же строкой — при `rootDir: backend` это корень сборки). Иначе Render по умолчанию берёт **Python 3.14**, у `pydantic-core` из `requirements.txt` нет готового wheel под эту версию, pip пытается **собрать из исходников** (Rust/maturin) и падает с **`Read-only file system`** / **`metadata-generation-failed`**. В **`render.yaml`** уже задан `PYTHON_VERSION` для Blueprint.  
    Также задать: `DATABASE_URL`, `JWT_SECRET`, `CORS_ORIGINS` (URL фронта на Render).
 3. **Фронт на Render (static или Next):** в `frontend` задать `BACKEND_URL` / `NEXT_PUBLIC_API_URL` под публичный URL API (см. `frontend/.env.local.example` и `next.config.mjs`).  
