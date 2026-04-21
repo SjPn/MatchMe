@@ -43,6 +43,19 @@ class GroupRoomMember(Base):
     room = relationship("GroupRoom", back_populates="members")
 
 
+class GroupRoomReadState(Base):
+    __tablename__ = "group_room_read_states"
+    __table_args__ = (
+        UniqueConstraint("room_id", "user_id", name="uq_group_room_read_state_pair"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    room_id: Mapped[int] = mapped_column(ForeignKey("group_rooms.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    last_read_message_id: Mapped[int] = mapped_column(default=0)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+
+
 class GroupMessage(Base):
     __tablename__ = "group_messages"
 

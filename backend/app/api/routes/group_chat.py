@@ -16,7 +16,13 @@ from app.core.group_matching import assign_user_to_group, refresh_daily_prompt_i
 from app.core.group_rate_limit import allow_group_message
 from app.core.group_traits import group_shared_traits_for_user
 from app.database import get_db
-from app.models.group_room import GroupMessage, GroupMessageReport, GroupRoom, GroupRoomMember
+from app.models.group_room import (
+    GroupMessage,
+    GroupMessageReport,
+    GroupRoom,
+    GroupRoomMember,
+    GroupRoomReadState,
+)
 from app.models.user import User
 from app.schemas.group_chat import GroupJoinOut, GroupMuteIn, GroupReportIn, GroupRoomDetailOut
 from app.schemas.social import MessageIn, MessageOut, MessageReplyPreview
@@ -118,6 +124,39 @@ def get_room(
         cohort_size_note=cohort_size_note(settings.group_min_members, settings.group_max_members),
         you_muted=bool(mem.muted),
     )
+
+
+@router.post("/{room_id}/read", status_code=204)
+def mark_room_read(
+    room_id: int,
+    last_message_id: int = Query(..., ge=0),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Response:
+    _room_or_404(db, room_id)
+    if _member(db, room_id, user.id) is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member")
+    st = db.scalar(
+        select(GroupRoomReadState).where(
+            GroupRoomReadState.room_id == room_id,
+            GroupRoomReadState.user_id == user.id,
+        )
+    )
+    now = datetime.now(timezone.utc)
+    if st is None:
+        st = GroupRoomReadState(
+            room_id=room_id,
+            user_id=user.id,
+            last_read_message_id=int(last_message_id),
+            updated_at=now,
+        )
+        db.add(st)
+    else:
+        st.last_read_message_id = max(int(st.last_read_message_id or 0), int(last_message_id))
+        st.updated_at = now
+        db.add(st)
+    db.commit()
+    return Response(status_code=204)
 
 
 @router.get("/{room_id}/messages", response_model=list[MessageOut])

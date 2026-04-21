@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+import { api, getToken } from "@/lib/api";
 
 const items: {
   href: string;
@@ -97,6 +99,31 @@ const items: {
 
 export function BottomNav() {
   const pathname = usePathname() || "";
+  const [unreadTotal, setUnreadTotal] = useState(0);
+
+  useEffect(() => {
+    if (!getToken()) {
+      setUnreadTotal(0);
+      return;
+    }
+    let cancelled = false;
+
+    async function tick() {
+      try {
+        const out = await api<{ total: number }>("/conversations/unread-count");
+        if (!cancelled) setUnreadTotal(Math.max(0, Number(out.total) || 0));
+      } catch {
+        // keep UI stable even if API is temporarily down
+      }
+    }
+
+    void tick();
+    const id = window.setInterval(tick, 6000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, []);
 
   return (
     <nav
@@ -107,6 +134,7 @@ export function BottomNav() {
       <div className="mx-auto flex max-w-shell lg:max-w-shell-wide items-stretch justify-around gap-1 pb-1">
         {items.map((item) => {
           const active = item.match(pathname);
+          const showUnread = item.href === "/conversations" && unreadTotal > 0;
           return (
             <Link
               key={item.href}
@@ -118,7 +146,17 @@ export function BottomNav() {
               }`}
               aria-current={active ? "page" : undefined}
             >
-              {item.icon(active)}
+              <span className="relative">
+                {item.icon(active)}
+                {showUnread ? (
+                  <span
+                    className="absolute -top-2 -right-3 min-w-[1.05rem] h-[1.05rem] px-1 rounded-full bg-red-500 text-[10px] leading-[1.05rem] text-white text-center font-semibold shadow"
+                    aria-label={`Непрочитанные сообщения: ${unreadTotal}`}
+                  >
+                    {unreadTotal > 99 ? "99+" : String(unreadTotal)}
+                  </span>
+                ) : null}
+              </span>
               <span className={`text-[11px] font-medium leading-none ${active ? "text-emerald-200" : ""}`}>
                 {item.label}
               </span>

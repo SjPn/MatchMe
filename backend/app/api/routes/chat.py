@@ -14,7 +14,7 @@ from app.core.group_matching import inbox_group_rows
 from app.core.user_blocks import is_hidden_pair
 from app.core.typing_store import other_users_typing, ping_typing
 from app.database import get_db
-from app.models.social import Conversation, Match, Message
+from app.models.social import Conversation, ConversationReadState, Match, Message
 from app.models.user import User
 from app.schemas.social import MessageAttachmentOut, MessageIn, MessageOut, MessageReplyPreview
 
@@ -121,6 +121,106 @@ def list_conversations(
     out.extend(inbox_group_rows(db, user.id))
     out.sort(key=lambda x: x.get("last_activity_at") or "", reverse=True)
     return out
+
+
+@router.get("/unread-count")
+def unread_count(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> dict:
+    """
+    Total unread messages counter for bottom nav badge.
+
+    MVP approach: per-user last_read_message_id tracked for direct conversations and group rooms.
+    """
+    # Direct conversations where user participates
+    rows = db.execute(
+        select(Conversation.id, Match.user_low_id, Match.user_high_id)
+        .join(Match, Conversation.match_id == Match.id)
+        .where(or_(Match.user_low_id == user.id, Match.user_high_id == user.id))
+    ).all()
+    conv_ids = [int(r[0]) for r in rows]
+
+    direct_unread = 0
+    if conv_ids:
+        states = db.execute(
+            select(ConversationReadState.conversation_id, ConversationReadState.last_read_message_id).where(
+                ConversationReadState.user_id == user.id,
+                ConversationReadState.conversation_id.in_(conv_ids),
+            )
+        ).all()
+        last_by_cid = {int(cid): int(last or 0) for cid, last in states}
+        # Count messages from others with id > last_read
+        for cid in conv_ids:
+            last = last_by_cid.get(cid, 0)
+            n = db.scalar(
+                select(func.count(Message.id)).where(
+                    Message.conversation_id == cid,
+                    Message.sender_id != user.id,
+                    Message.id > last,
+                )
+            )
+            direct_unread += int(n or 0)
+
+    # Group rooms: reuse inbox_group_rows to get room ids visible to user
+    group_rows = inbox_group_rows(db, user.id)
+    room_ids = [int(x.get("room_id")) for x in group_rows if x.get("room_id") is not None]
+    group_unread = 0
+    if room_ids:
+        from app.models.group_room import GroupMessage, GroupRoomReadState
+
+        states = db.execute(
+            select(GroupRoomReadState.room_id, GroupRoomReadState.last_read_message_id).where(
+                GroupRoomReadState.user_id == user.id,
+                GroupRoomReadState.room_id.in_(room_ids),
+            )
+        ).all()
+        last_by_rid = {int(rid): int(last or 0) for rid, last in states}
+        for rid in room_ids:
+            last = last_by_rid.get(rid, 0)
+            n = db.scalar(
+                select(func.count(GroupMessage.id)).where(
+                    GroupMessage.room_id == rid,
+                    GroupMessage.sender_id != user.id,
+                    GroupMessage.id > last,
+                )
+            )
+            group_unread += int(n or 0)
+
+    return {"direct": direct_unread, "group": group_unread, "total": direct_unread + group_unread}
+
+
+@router.post("/{conversation_id}/read", status_code=204)
+def mark_conversation_read(
+    conversation_id: int,
+    last_message_id: int = Query(..., ge=0),
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> Response:
+    conv = _conversation_for_user(db, conversation_id, user.id)
+    if conv is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    st = db.scalar(
+        select(ConversationReadState).where(
+            ConversationReadState.conversation_id == conversation_id,
+            ConversationReadState.user_id == user.id,
+        )
+    )
+    now = datetime.now(timezone.utc)
+    if st is None:
+        st = ConversationReadState(
+            conversation_id=conversation_id,
+            user_id=user.id,
+            last_read_message_id=int(last_message_id),
+            updated_at=now,
+        )
+        db.add(st)
+    else:
+        st.last_read_message_id = max(int(st.last_read_message_id or 0), int(last_message_id))
+        st.updated_at = now
+        db.add(st)
+    db.commit()
+    return Response(status_code=204)
 
 
 @router.get("/{conversation_id}/peer")

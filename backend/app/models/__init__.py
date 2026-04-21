@@ -1,9 +1,15 @@
 from app.models.answer import Answer
 from app.models.discussion import DiscussionComment, DiscussionPost
-from app.models.group_room import GroupMessage, GroupMessageReport, GroupRoom, GroupRoomMember
+from app.models.group_room import (
+    GroupMessage,
+    GroupMessageReport,
+    GroupRoom,
+    GroupRoomMember,
+    GroupRoomReadState,
+)
 from app.models.moderation import UserBlock, UserReport
 from app.models.question import Question, QuestionAxis, question_axis_link
-from app.models.social import Conversation, Like, Match, Message
+from app.models.social import Conversation, ConversationReadState, Like, Match, Message
 from app.models.thread import ThreadMedia, ThreadPost
 from app.models.thread_social import ThreadPostLike
 from app.models.thread_topics import ThreadPostTopic
@@ -24,9 +30,11 @@ __all__ = [
     "Like",
     "Match",
     "Conversation",
+    "ConversationReadState",
     "Message",
     "GroupRoom",
     "GroupRoomMember",
+    "GroupRoomReadState",
     "GroupMessage",
     "GroupMessageReport",
     "UserBlock",

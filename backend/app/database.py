@@ -145,6 +145,53 @@ def ensure_sqlite_schema_compat() -> None:
     ensure_discussion_reply_column()
     ensure_sqlite_group_tables()
     ensure_sqlite_moderation_tables()
+    ensure_sqlite_chat_read_state_tables()
+
+
+def ensure_sqlite_chat_read_state_tables() -> None:
+    if not _is_sqlite(settings.database_url):
+        return
+    insp = inspect(engine)
+    with engine.begin() as conn:
+        if not insp.has_table("conversation_read_states"):
+            conn.execute(
+                text(
+                    """
+CREATE TABLE IF NOT EXISTS conversation_read_states (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  conversation_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  last_read_message_id INTEGER NOT NULL DEFAULT 0,
+  updated_at DATETIME,
+  CONSTRAINT uq_conversation_read_state_pair UNIQUE (conversation_id, user_id),
+  FOREIGN KEY(conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+)
+"""
+                )
+            )
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_conversation_read_states_conversation_id ON conversation_read_states(conversation_id)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_conversation_read_states_user_id ON conversation_read_states(user_id)"))
+
+        if not insp.has_table("group_room_read_states"):
+            conn.execute(
+                text(
+                    """
+CREATE TABLE IF NOT EXISTS group_room_read_states (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  room_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  last_read_message_id INTEGER NOT NULL DEFAULT 0,
+  updated_at DATETIME,
+  CONSTRAINT uq_group_room_read_state_pair UNIQUE (room_id, user_id),
+  FOREIGN KEY(room_id) REFERENCES group_rooms(id) ON DELETE CASCADE,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+)
+"""
+                )
+            )
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_group_room_read_states_room_id ON group_room_read_states(room_id)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_group_room_read_states_user_id ON group_room_read_states(user_id)"))
 
 
 def ensure_discussion_reply_column() -> None:

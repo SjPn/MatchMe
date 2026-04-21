@@ -93,6 +93,15 @@ export default function GroupChatPage() {
     };
   }, [rid]);
 
+  // Mark messages as read when group chat is open and visible.
+  useEffect(() => {
+    if (!ready || !Number.isFinite(rid)) return;
+    if (typeof document !== "undefined" && document.hidden) return;
+    const lastId = messages.length ? messages[messages.length - 1].id : 0;
+    if (lastId <= 0) return;
+    void api(`/group-rooms/${rid}/read?last_message_id=${lastId}`, { method: "POST" });
+  }, [messages, ready, rid]);
+
   useEffect(() => {
     if (!ready || !Number.isFinite(rid)) return;
     function tick() {
