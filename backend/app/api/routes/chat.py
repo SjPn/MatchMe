@@ -14,6 +14,7 @@ from app.core.group_matching import inbox_group_rows
 from app.core.user_blocks import is_hidden_pair
 from app.core.typing_store import other_users_typing, ping_typing
 from app.database import get_db
+from app.models.group_room import GroupMessage, GroupRoomReadState
 from app.models.social import Conversation, ConversationReadState, Match, Message
 from app.models.user import User
 from app.schemas.social import MessageAttachmentOut, MessageIn, MessageOut, MessageReplyPreview
@@ -49,6 +50,62 @@ def _validate_reply_target(db: Session, conversation_id: int, reply_to_message_i
     parent = db.get(Message, reply_to_message_id)
     if parent is None or parent.conversation_id != conversation_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid reply target")
+
+
+def _count_unread_direct(db: Session, viewer_id: int, conversation_id: int, last_read_message_id: int) -> int:
+    n = db.scalar(
+        select(func.count(Message.id)).where(
+            Message.conversation_id == conversation_id,
+            Message.sender_id != viewer_id,
+            Message.id > last_read_message_id,
+        )
+    )
+    return int(n or 0)
+
+
+def _count_unread_group(db: Session, viewer_id: int, room_id: int, last_read_message_id: int) -> int:
+    n = db.scalar(
+        select(func.count(GroupMessage.id)).where(
+            GroupMessage.room_id == room_id,
+            GroupMessage.sender_id != viewer_id,
+            GroupMessage.id > last_read_message_id,
+        )
+    )
+    return int(n or 0)
+
+
+def _attach_unread_to_conversation_list(db: Session, user_id: int, items: list[dict]) -> None:
+    """Mutates each row: adds integer unread_count (from others, id > last_read)."""
+    direct_rows = [x for x in items if x.get("kind") == "direct"]
+    if direct_rows:
+        cids = [int(x["conversation_id"]) for x in direct_rows]
+        st = db.execute(
+            select(ConversationReadState.conversation_id, ConversationReadState.last_read_message_id).where(
+                ConversationReadState.user_id == user_id,
+                ConversationReadState.conversation_id.in_(cids),
+            )
+        ).all()
+        last_by = {int(c): int(l or 0) for c, l in st}
+        for x in direct_rows:
+            cid = int(x["conversation_id"])
+            x["unread_count"] = _count_unread_direct(db, user_id, cid, last_by.get(cid, 0))
+
+    group_rows = [x for x in items if x.get("kind") == "group"]
+    if group_rows:
+        rids = [int(x["group_room_id"]) for x in group_rows]
+        st = db.execute(
+            select(GroupRoomReadState.room_id, GroupRoomReadState.last_read_message_id).where(
+                GroupRoomReadState.user_id == user_id,
+                GroupRoomReadState.room_id.in_(rids),
+            )
+        ).all()
+        last_by = {int(r): int(l or 0) for r, l in st}
+        for x in group_rows:
+            rid = int(x["group_room_id"])
+            x["unread_count"] = _count_unread_group(db, user_id, rid, last_by.get(rid, 0))
+
+    for x in items:
+        x.setdefault("unread_count", 0)
 
 
 def _message_to_out(db: Session, cid: int, m: Message) -> MessageOut:
@@ -120,6 +177,7 @@ def list_conversations(
         )
     out.extend(inbox_group_rows(db, user.id))
     out.sort(key=lambda x: x.get("last_activity_at") or "", reverse=True)
+    _attach_unread_to_conversation_list(db, user.id, out)
     return out
 
 
@@ -150,25 +208,14 @@ def unread_count(
             )
         ).all()
         last_by_cid = {int(cid): int(last or 0) for cid, last in states}
-        # Count messages from others with id > last_read
         for cid in conv_ids:
             last = last_by_cid.get(cid, 0)
-            n = db.scalar(
-                select(func.count(Message.id)).where(
-                    Message.conversation_id == cid,
-                    Message.sender_id != user.id,
-                    Message.id > last,
-                )
-            )
-            direct_unread += int(n or 0)
+            direct_unread += _count_unread_direct(db, user.id, cid, last)
 
-    # Group rooms: reuse inbox_group_rows to get room ids visible to user
     group_rows = inbox_group_rows(db, user.id)
-    room_ids = [int(x.get("room_id")) for x in group_rows if x.get("room_id") is not None]
+    room_ids = [int(x["group_room_id"]) for x in group_rows]
     group_unread = 0
     if room_ids:
-        from app.models.group_room import GroupMessage, GroupRoomReadState
-
         states = db.execute(
             select(GroupRoomReadState.room_id, GroupRoomReadState.last_read_message_id).where(
                 GroupRoomReadState.user_id == user.id,
@@ -178,14 +225,7 @@ def unread_count(
         last_by_rid = {int(rid): int(last or 0) for rid, last in states}
         for rid in room_ids:
             last = last_by_rid.get(rid, 0)
-            n = db.scalar(
-                select(func.count(GroupMessage.id)).where(
-                    GroupMessage.room_id == rid,
-                    GroupMessage.sender_id != user.id,
-                    GroupMessage.id > last,
-                )
-            )
-            group_unread += int(n or 0)
+            group_unread += _count_unread_group(db, user.id, rid, last)
 
     return {"direct": direct_unread, "group": group_unread, "total": direct_unread + group_unread}
 

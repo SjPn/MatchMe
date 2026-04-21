@@ -12,6 +12,7 @@ type DirectRow = {
   other_user_id: number;
   other_display_name: string;
   last_activity_at?: string | null;
+  unread_count?: number;
 };
 
 type GroupRow = {
@@ -20,6 +21,7 @@ type GroupRow = {
   title: string;
   member_count: number;
   last_activity_at?: string | null;
+  unread_count?: number;
 };
 
 type Row = DirectRow | GroupRow;
@@ -31,6 +33,19 @@ type JoinOut = {
   eligible_peers?: number | null;
   min_members?: number | null;
 };
+
+function UnreadBadge({ n }: { n: number }) {
+  if (n <= 0) return null;
+  const label = n > 99 ? "99+" : String(n);
+  return (
+    <span
+      className="min-w-[1.25rem] h-5 px-1.5 rounded-full bg-red-500 text-[11px] font-semibold text-white flex items-center justify-center tabular-nums"
+      aria-label={`Непрочитанных сообщений: ${n}`}
+    >
+      {label}
+    </span>
+  );
+}
 
 export default function ConversationsPage() {
   const router = useRouter();
@@ -158,9 +173,12 @@ export default function ConversationsPage() {
                     </span>
                     <span className="font-medium">{r.title}</span>
                   </span>
-                  {r.last_activity_at ? (
-                    <span className="text-xs text-zinc-500 shrink-0">{formatTs(r.last_activity_at)}</span>
-                  ) : null}
+                  <span className="flex items-center gap-2 shrink-0">
+                    <UnreadBadge n={r.unread_count ?? 0} />
+                    {r.last_activity_at ? (
+                      <span className="text-xs text-zinc-500">{formatTs(r.last_activity_at)}</span>
+                    ) : null}
+                  </span>
                 </Link>
               </li>
             );
@@ -180,9 +198,12 @@ export default function ConversationsPage() {
                     {r.other_display_name || `Пользователь #${r.other_user_id}`}
                   </Link>
                 </span>
-                {r.last_activity_at ? (
-                  <span className="text-xs text-zinc-500 shrink-0">{formatTs(r.last_activity_at)}</span>
-                ) : null}
+                <span className="flex items-center gap-2 shrink-0">
+                  <UnreadBadge n={r.unread_count ?? 0} />
+                  {r.last_activity_at ? (
+                    <span className="text-xs text-zinc-500">{formatTs(r.last_activity_at)}</span>
+                  ) : null}
+                </span>
               </Link>
             </li>
           );
