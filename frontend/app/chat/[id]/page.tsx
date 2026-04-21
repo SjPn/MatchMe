@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BottomNav } from "@/components/BottomNav";
 import { api, downloadBlob, getToken, postFormData } from "@/lib/api";
 
 type Attachment = {
@@ -459,6 +460,7 @@ export default function ChatPage() {
           Файл до ~10 МБ: PDF, изображения, документы Office, zip, txt.
         </p>
       </form>
+      <BottomNav />
     </main>
   );
 }

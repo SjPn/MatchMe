@@ -2,11 +2,13 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import FileResponse
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.user_blocks import is_hidden_pair
 from app.database import get_db
+from app.models.social import Conversation, Match
 from app.models.thread import ThreadPost
 from app.models.user import User
 from app.schemas.thread import CursorPage
@@ -18,6 +20,19 @@ BACKEND_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 VERIFY_ROOT = BACKEND_ROOT / "uploads" / "verify"
 AVATAR_ROOT = BACKEND_ROOT / "uploads" / "avatars"
 _ALLOWED_VERIFY_EXT = (".jpg", ".jpeg", ".png", ".webp")
+
+
+def _ordered_pair(a: int, b: int) -> tuple[int, int]:
+    return (a, b) if a < b else (b, a)
+
+
+def _conversation_id_between(db: Session, a: int, b: int) -> int | None:
+    low, high = _ordered_pair(a, b)
+    match_row = db.scalar(select(Match).where(Match.user_low_id == low, Match.user_high_id == high))
+    if match_row is None:
+        return None
+    conv = db.scalar(select(Conversation).where(Conversation.match_id == match_row.id))
+    return conv.id if conv else None
 
 
 def _verification_photo_path(user_id: int) -> Path | None:
@@ -63,12 +78,16 @@ def get_user_public(
     if user_id != me.id and is_hidden_pair(db, me.id, user_id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Blocked")
     avatar_url = target.avatar_url
+    conv_id: int | None = None
+    if user_id != me.id:
+        conv_id = _conversation_id_between(db, me.id, user_id)
     return UserPublicOut(
         id=target.id,
         display_name=target.display_name,
         avatar_url=avatar_url,
         about_me=target.about_me,
         identity_verified=target.identity_verified,
+        conversation_id=conv_id,
         answers_hidden_from_others=True,
     )
 

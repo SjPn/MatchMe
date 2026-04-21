@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BottomNav } from "@/components/BottomNav";
 import { api } from "@/lib/api";
 
 type ReplyPreview = {
@@ -437,6 +438,7 @@ export default function GroupChatPage() {
           Лимит сервера: не больше ~15 сообщений в минуту на человека.
         </p>
       </form>
+      <BottomNav />
     </main>
   );
 }

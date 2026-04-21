@@ -1,9 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, getToken } from "@/lib/api";
+import { BottomNav } from "@/components/BottomNav";
+import { api, avatarPublicSrc, getToken } from "@/lib/api";
 import { ThreadPostCard, ThreadPostOut as ThreadOut } from "@/components/ThreadPostCard";
 
 type Compare = {
@@ -40,6 +42,7 @@ type UserPublic = {
   about_me?: string | null;
   identity_verified?: boolean;
   answers_hidden_from_others?: boolean;
+  conversation_id?: number | null;
 };
 
 function initialsFrom(name: string): string {
@@ -49,27 +52,26 @@ function initialsFrom(name: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-function publicImgSrc(url: string | null | undefined): string {
-  const u = (url || "").trim();
-  if (!u) return "";
-  if (u.startsWith("http://") || u.startsWith("https://")) return u;
-  if (u.startsWith("/api/")) return u;
-  if (u.startsWith("/")) return `/api${u}`;
-  return u;
-}
-
 function Avatar({ name, url }: { name: string; url?: string | null }) {
   const initials = initialsFrom(name);
-  // eslint-disable-next-line @next/next/no-img-element
-  return url ? (
-    <img
-      src={publicImgSrc(url)}
-      alt={`Аватар ${name}`}
-      className="h-16 w-16 rounded-full object-cover border border-emerald-500/20 ring-2 ring-black/20 shadow-lg shadow-black/30"
-    />
-  ) : (
-    <div className="h-16 w-16 rounded-full border border-emerald-500/20 ring-2 ring-black/20 bg-gradient-to-br from-emerald-900/70 to-zinc-900 flex items-center justify-center shadow-lg shadow-black/30">
-      <span className="text-base font-semibold text-emerald-100/90">{initials}</span>
+  const src = url ? avatarPublicSrc(url) : "";
+  const [broken, setBroken] = useState(false);
+  const showImg = Boolean(src && !broken);
+  return (
+    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-emerald-500/20 ring-2 ring-black/20 bg-gradient-to-br from-emerald-900/70 to-zinc-900 shadow-lg shadow-black/30 flex items-center justify-center">
+      {showImg ? (
+        <Image
+          src={src}
+          alt={`Аватар ${name}`}
+          width={64}
+          height={64}
+          className="h-full w-full object-cover"
+          unoptimized
+          onError={() => setBroken(true)}
+        />
+      ) : (
+        <span className="text-base font-semibold text-emerald-100/90">{initials}</span>
+      )}
     </div>
   );
 }
@@ -123,6 +125,7 @@ export default function UserComparePage() {
         }
         const [u, c] = await Promise.all([api<UserPublic>(`/users/${id}`), api<Compare>(`/users/${id}/compare`)]);
         setUserInfo(u);
+        setConversationId(u.conversation_id ?? null);
         setData(c);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Ошибка");
@@ -168,8 +171,9 @@ export default function UserComparePage() {
         body: JSON.stringify({ to_user_id: id }),
       });
       if (res.mutual && res.match_id) {
-        setConversationId(res.conversation_id ?? null);
-        setMsg("Взаимно! Можно сразу перейти в чат.");
+        const cid = res.conversation_id ?? null;
+        setConversationId(cid);
+        setMsg(cid ? "Взаимно! Можно перейти в чат." : "Взаимно! Чат скоро появится в «Диалогах».");
       } else {
         setMsg("Лайк отправлен. Если ответят взаимностью — появится матч.");
       }
@@ -455,24 +459,24 @@ export default function UserComparePage() {
       {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
 
       <div className="mt-10 flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={onLike}
-          className="rounded-xl bg-emerald-500 text-zinc-950 font-medium py-3 px-4 hover:bg-emerald-400"
-        >
-          Интересно (лайк)
-        </button>
-        {conversationId ? (
-          <Link
-            href={`/chat/${conversationId}`}
-            className="rounded-xl border border-emerald-500/50 bg-emerald-500/10 text-center py-3 px-4 text-sm text-emerald-300 hover:border-emerald-400"
-          >
-            Начать чат
+        {conversationId != null ? (
+          <Link href={`/chat/${conversationId}`} className="mm-btn-primary block w-full text-center py-3.5">
+            Чат
           </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={onLike}
+            className="rounded-xl bg-emerald-500 text-zinc-950 font-medium py-3 px-4 hover:bg-emerald-400"
+          >
+            Интересно (лайк)
+          </button>
+        )}
+        {conversationId == null ? (
+          <p className="text-xs text-zinc-600">
+            После взаимного лайка открой раздел «Диалоги» — там появится личный чат.
+          </p>
         ) : null}
-        <p className="text-xs text-zinc-600">
-          После взаимного лайка открой раздел «Диалоги» — там появится личный чат.
-        </p>
         <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-800">
           <button
             type="button"
@@ -524,6 +528,7 @@ export default function UserComparePage() {
           </div>
         </div>
       )}
+      <BottomNav />
     </main>
   );
 }

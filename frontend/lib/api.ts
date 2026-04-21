@@ -25,6 +25,19 @@ export function setToken(token: string | null) {
   else localStorage.removeItem(TOKEN_KEY);
 }
 
+/**
+ * URL для <img> / next/image: пути вида /users/1/avatar проксируются через Next (/api/* → бэкенд).
+ * Без этого браузер запрашивает /users/... на origin фронта и попадает в 404 App Router.
+ */
+export function avatarPublicSrc(url: string | null | undefined): string {
+  const u = (url || "").trim();
+  if (!u) return "";
+  if (u.startsWith("http://") || u.startsWith("https://")) return u;
+  if (u.startsWith("/api/")) return u;
+  const path = u.startsWith("/") ? u : `/${u}`;
+  return `/api${path}`;
+}
+
 function isLocalDev(): boolean {
   if (typeof window === "undefined") return false;
   const h = window.location.hostname;

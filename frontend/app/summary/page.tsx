@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { api, getToken, postFormData } from "@/lib/api";
+import { BottomNav } from "@/components/BottomNav";
+import { api, avatarPublicSrc, getToken, postFormData, setToken } from "@/lib/api";
 
 type Summary = {
   display_name: string;
@@ -33,15 +34,6 @@ type Me = {
   about_me?: string | null;
   identity_verified?: boolean;
 };
-
-function publicImgSrc(url: string): string {
-  const u = (url || "").trim();
-  if (!u) return "";
-  if (u.startsWith("http://") || u.startsWith("https://")) return u;
-  if (u.startsWith("/api/")) return u;
-  if (u.startsWith("/")) return `/api${u}`;
-  return u;
-}
 
 export default function SummaryPage() {
   const router = useRouter();
@@ -159,7 +151,19 @@ export default function SummaryPage() {
 
   return (
     <main className="mm-page scrollbar-thin">
-      <p className="text-emerald-400/95 text-sm font-medium">Твой профиль в MatchMe</p>
+      <div className="flex justify-end">
+        <button
+          type="button"
+          className="text-sm text-zinc-500 hover:text-zinc-300 underline-offset-2 hover:underline"
+          onClick={() => {
+            setToken(null);
+            router.replace("/login");
+          }}
+        >
+          Выйти из аккаунта
+        </button>
+      </div>
+      <p className="text-emerald-400/95 text-sm font-medium mt-2">Твой профиль в MatchMe</p>
       <h1 className="mm-h1 mt-3">Привет, {data.display_name}</h1>
       <p className="mm-lead mt-2 max-w-xl">
         Ниже — срез по осям (0–1) на основе ответов. Это не клиническая диагностика, а ориентир для совпадений.
@@ -210,7 +214,7 @@ export default function SummaryPage() {
             {me.avatar_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={publicImgSrc(me.avatar_url)}
+                src={avatarPublicSrc(me.avatar_url)}
                 alt="Ваш аватар"
                 className="h-14 w-14 rounded-full object-cover border border-emerald-500/20"
               />
@@ -371,6 +375,7 @@ export default function SummaryPage() {
       <Link href="/feed" className="mm-btn-primary mt-10 block w-full text-center py-3.5">
         Показать людей, похожих на меня
       </Link>
+      <BottomNav />
     </main>
   );
 }

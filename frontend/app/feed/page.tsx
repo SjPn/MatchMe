@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
-import { api, getToken } from "@/lib/api";
+import { api, avatarPublicSrc, getToken } from "@/lib/api";
 
 type Insight = { axis: string; slug: string; detail: string };
 
@@ -53,13 +53,14 @@ function initialsFrom(name: string): string {
 
 function FeedAvatar({ name, url }: { name: string; url?: string | null }) {
   const [broken, setBroken] = useState(false);
-  const showImg = Boolean(url && !broken);
+  const src = url ? avatarPublicSrc(url) : "";
+  const showImg = Boolean(src && !broken);
   const initials = initialsFrom(name);
   return (
     <div className="h-14 w-14 rounded-full overflow-hidden border border-emerald-500/20 ring-2 ring-black/20 shrink-0 bg-gradient-to-br from-emerald-900/70 to-zinc-900 flex items-center justify-center shadow-lg shadow-black/30">
       {showImg ? (
         <Image
-          src={url as string}
+          src={src}
           alt={`Аватар ${name}`}
           width={56}
           height={56}
