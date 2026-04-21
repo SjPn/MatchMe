@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { api, getToken } from "@/lib/api";
 
 type Question = {
@@ -88,8 +88,14 @@ function likertSteps(q: Question): number[] {
   return out;
 }
 
-export default function TestPage() {
+type PackId = "onboarding" | "onboarding_plus";
+
+function TestPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pack: PackId =
+    searchParams.get("pack") === "onboarding_plus" ? "onboarding_plus" : "onboarding";
+
   const [questions, setQuestions] = useState<Question[]>([]);
   const [idx, setIdx] = useState(0);
   const [drafts, setDrafts] = useState<Record<number, AnswerDraft>>({});
@@ -108,19 +114,45 @@ export default function TestPage() {
       return;
     }
     let cancelled = false;
+    setLoading(true);
+    setError(null);
     (async () => {
       try {
         const me = await api<{ onboarding_step: string }>("/auth/me");
         if (cancelled) return;
-        if (me.onboarding_step === "test_completed") {
-          router.replace("/feed");
-          return;
+
+        if (pack === "onboarding") {
+          if (me.onboarding_step === "test_completed") {
+            router.replace("/feed");
+            return;
+          }
+        } else {
+          if (me.onboarding_step !== "test_completed") {
+            router.replace("/test");
+            return;
+          }
+          const summary = await api<{
+            onboarding_plus_total: number;
+            onboarding_plus_answered: number;
+          }>("/me/summary");
+          if (cancelled) return;
+          const { onboarding_plus_total, onboarding_plus_answered } = summary;
+          if (
+            onboarding_plus_total > 0 &&
+            onboarding_plus_answered >= onboarding_plus_total
+          ) {
+            router.replace("/summary");
+            return;
+          }
         }
-        const data = await api<Question[]>("/questions?pack=onboarding", {
+
+        const data = await api<Question[]>(`/questions?pack=${encodeURIComponent(pack)}`, {
           cache: "no-store",
         });
         if (cancelled) return;
         setQuestions(data.sort((a, b) => a.order_index - b.order_index || a.id - b.id));
+        setIdx(0);
+        setDrafts({});
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Не удалось загрузить вопросы");
@@ -134,7 +166,7 @@ export default function TestPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, pack]);
 
   useEffect(() => {
     if (!q || q.qtype !== "likert") return;
@@ -212,6 +244,9 @@ export default function TestPage() {
 
   return (
     <main className="mm-page flex flex-col scrollbar-thin">
+      {pack === "onboarding_plus" ? (
+        <p className="text-xs text-zinc-500 mb-2">Дополнительный блок — 10 вопросов</p>
+      ) : null}
       <div className="h-1 w-full bg-zinc-800 rounded overflow-hidden mb-6">
         <div
           className="h-full bg-emerald-500 transition-all"
@@ -359,5 +394,19 @@ export default function TestPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function TestPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-400">
+          Загрузка…
+        </main>
+      }
+    >
+      <TestPageInner />
+    </Suspense>
   );
 }

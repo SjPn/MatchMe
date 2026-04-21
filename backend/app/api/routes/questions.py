@@ -1,6 +1,6 @@
 import json
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -11,6 +11,8 @@ from app.schemas.question import AxisBrief, QuestionOut
 
 router = APIRouter(prefix="/questions", tags=["questions"])
 
+_ALLOWED_QUESTION_PACKS = frozenset({"onboarding", "onboarding_plus"})
+
 
 @router.get("", response_model=list[QuestionOut])
 def list_questions(
@@ -19,6 +21,8 @@ def list_questions(
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ) -> list[QuestionOut]:
+    if pack not in _ALLOWED_QUESTION_PACKS:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Неизвестный набор вопросов")
     rows = (
         db.query(Question)
         .filter(Question.pack == pack)

@@ -93,6 +93,8 @@ class ProfileSummaryOut(BaseModel):
     display_name: str
     onboarding_step: str
     completion_percent: float
+    onboarding_plus_total: int = 0
+    onboarding_plus_answered: int = 0
     axes: list[ProfileAxisSummaryOut]
     badges: list[str] = Field(default_factory=list)
     mind_lines: list[str] = Field(default_factory=list)

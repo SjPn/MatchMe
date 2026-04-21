@@ -10,6 +10,8 @@ type Summary = {
   display_name: string;
   onboarding_step: string;
   completion_percent: number;
+  onboarding_plus_total?: number;
+  onboarding_plus_answered?: number;
   badges?: string[];
   mind_lines?: string[];
   about_me: string | null;
@@ -296,9 +298,30 @@ export default function SummaryPage() {
           className="mt-8 mm-card-static space-y-4"
           aria-labelledby="profile-form-heading"
         >
-          <h2 id="profile-form-heading" className="sr-only">
-            Редактирование профиля
+          <h2 id="profile-form-heading" className="text-sm font-medium text-zinc-200">
+            Профиль
           </h2>
+          {(data.onboarding_plus_total ?? 0) > 0 &&
+          (data.onboarding_plus_answered ?? 0) < (data.onboarding_plus_total ?? 0) ? (
+            <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-3 space-y-2">
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Доступен второй блок из 10 вопросов — он уточнит оси профиля (справедливость, автономия,
+                эмоции vs логика и др.).
+              </p>
+              <Link
+                href="/test?pack=onboarding_plus"
+                className="inline-flex items-center justify-center rounded-lg bg-emerald-500 text-zinc-950 text-sm font-medium px-4 py-2.5 w-full sm:w-auto"
+              >
+                Продолжить опрос
+              </Link>
+            </div>
+          ) : null}
+          {(data.onboarding_plus_total ?? 0) > 0 &&
+          (data.onboarding_plus_answered ?? 0) >= (data.onboarding_plus_total ?? 0) ? (
+            <p className="text-xs text-zinc-500">
+              Дополнительный блок из 10 вопросов пройден — оси профиля обновлены с учётом этих ответов.
+            </p>
+          ) : null}
           <div>
             <label htmlFor="summary-about" className="text-sm text-zinc-400 block">
               Несколько слов о себе

@@ -13,6 +13,7 @@ from app.models.discussion import DiscussionPost
 from app.models.question import Question, QuestionAxis, question_axis_link
 from app.models.user import User
 from app.seed_data.likert_scale_hints import LIKERT_HINTS_BY_ORDER
+from app.seed_data.onboarding_plus import seed_onboarding_plus_pack
 
 
 def apply_likert_labels(db) -> None:
@@ -163,12 +164,11 @@ def run() -> None:
             apply_likert_labels(db)
             print("Likert UI labels updated.")
             seed_discussion_if_empty(db)
-            return
+        else:
+            _clear_onboarding_questions(db)
+            slug_to_axis: dict[str, QuestionAxis] = {a.slug: a for a in db.query(QuestionAxis).all()}
 
-        _clear_onboarding_questions(db)
-        slug_to_axis: dict[str, QuestionAxis] = {a.slug: a for a in db.query(QuestionAxis).all()}
-
-        items: list[dict] = [
+            items: list[dict] = [
             {
                 "order": 1,
                 "qtype": "forced_choice",
@@ -259,45 +259,48 @@ def run() -> None:
                 "likert_right_label": "Любопытство",
                 "likert_bipolar_invert": False,
             },
-        ]
+            ]
 
-        for it in items:
-            hints_list = LIKERT_HINTS_BY_ORDER.get(it["order"])
-            likert_hints_json = (
-                json.dumps(hints_list, ensure_ascii=False) if hints_list is not None else None
-            )
-            q = Question(
-                pack="onboarding",
-                qtype=it["qtype"],
-                text=it["text"],
-                order_index=it["order"],
-                option_a=it.get("option_a"),
-                option_b=it.get("option_b"),
-                likert_min=1,
-                likert_max=10,
-                likert_left_label=it.get("likert_left_label"),
-                likert_right_label=it.get("likert_right_label"),
-                likert_bipolar_invert=bool(it.get("likert_bipolar_invert", False)),
-                likert_hints_json=likert_hints_json,
-                choice_score_invert=bool(it.get("choice_score_invert", False)),
-            )
-            db.add(q)
-            db.flush()
-            for slug in it["axes"]:
-                ax = slug_to_axis[slug]
-                db.execute(
-                    insert(question_axis_link).values(
-                        question_id=q.id,
-                        axis_id=ax.id,
-                        weight=1.0,
-                    )
+            for it in items:
+                hints_list = LIKERT_HINTS_BY_ORDER.get(it["order"])
+                likert_hints_json = (
+                    json.dumps(hints_list, ensure_ascii=False) if hints_list is not None else None
                 )
+                q = Question(
+                    pack="onboarding",
+                    qtype=it["qtype"],
+                    text=it["text"],
+                    order_index=it["order"],
+                    option_a=it.get("option_a"),
+                    option_b=it.get("option_b"),
+                    likert_min=1,
+                    likert_max=10,
+                    likert_left_label=it.get("likert_left_label"),
+                    likert_right_label=it.get("likert_right_label"),
+                    likert_bipolar_invert=bool(it.get("likert_bipolar_invert", False)),
+                    likert_hints_json=likert_hints_json,
+                    choice_score_invert=bool(it.get("choice_score_invert", False)),
+                )
+                db.add(q)
+                db.flush()
+                for slug in it["axes"]:
+                    ax = slug_to_axis[slug]
+                    db.execute(
+                        insert(question_axis_link).values(
+                            question_id=q.id,
+                            axis_id=ax.id,
+                            weight=1.0,
+                        )
+                    )
 
-        db.commit()
-        print(f"Seeded {len(items)} onboarding questions (v2).")
-        apply_likert_labels(db)
-        print("Likert UI labels synced.")
-        seed_discussion_if_empty(db)
+            db.commit()
+            print(f"Seeded {len(items)} onboarding questions (v2).")
+            apply_likert_labels(db)
+            print("Likert UI labels synced.")
+            seed_discussion_if_empty(db)
+
+        seed_onboarding_plus_pack(db)
+        print("Onboarding plus pack (10 questions) synced.")
     finally:
         db.close()
 

@@ -77,6 +77,14 @@ def profile_summary(
     )
     completion = round(100.0 * answered / total_q, 1) if total_q else 0.0
 
+    plus_total = db.query(Question).filter(Question.pack == "onboarding_plus").count()
+    plus_answered = (
+        db.query(Answer)
+        .join(Question, Answer.question_id == Question.id)
+        .filter(Answer.user_id == user.id, Question.pack == "onboarding_plus")
+        .count()
+    )
+
     badges: list[str] = []
     if completion >= 80.0:
         badges.append("transparent_axes")
@@ -90,6 +98,8 @@ def profile_summary(
         display_name=user.display_name or "",
         onboarding_step=user.onboarding_step or "",
         completion_percent=float(completion),
+        onboarding_plus_total=int(plus_total),
+        onboarding_plus_answered=int(plus_answered),
         axes=axis_rows,
         badges=badges,
         mind_lines=mind_lines,
