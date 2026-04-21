@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
+import {
+  isScrollNearBottom,
+  playSoftMessagePing,
+  requestNotificationPermission,
+  showChatNotificationIfAllowed,
+} from "@/lib/chatClient";
 import { api, downloadBlob, getToken, postFormData } from "@/lib/api";
 
 type Attachment = {
@@ -53,18 +59,39 @@ export default function ChatPage() {
   const [reportReason, setReportReason] = useState("");
   const [modBusy, setModBusy] = useState(false);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
+  const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
   const lastIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<Message[]>([]);
+  const atBottomRef = useRef(true);
+  const lastMarkedReadId = useRef(0);
   const fileRef = useRef<HTMLInputElement>(null);
   const typingIntervalRef = useRef<number | null>(null);
 
-  const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  messagesRef.current = messages;
+
+  const tryMarkRead = useCallback(() => {
+    if (!ready || !Number.isFinite(cid)) return;
+    if (typeof document !== "undefined" && document.hidden) return;
+    const box = scrollRef.current;
+    if (!box || !isScrollNearBottom(box)) return;
+    const list = messagesRef.current;
+    const lastId = list.length ? list[list.length - 1].id : 0;
+    if (lastId <= 0 || lastId <= lastMarkedReadId.current) return;
+    lastMarkedReadId.current = lastId;
+    void api(`/conversations/${cid}/read?last_message_id=${lastId}`, { method: "POST" });
+  }, [ready, cid]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    if (!ready) return;
+    const box = scrollRef.current;
+    if (!box) return;
+    if (atBottomRef.current) {
+      box.scrollTop = box.scrollHeight;
+      tryMarkRead();
+    }
+  }, [messages, ready, tryMarkRead]);
 
   useEffect(() => {
     if (!getToken()) {
@@ -97,28 +124,41 @@ export default function ChatPage() {
     };
   }, [cid, router]);
 
-  // Mark messages as read when chat is open and visible.
   useEffect(() => {
-    if (!ready || !Number.isFinite(cid)) return;
-    if (typeof document !== "undefined" && document.hidden) return;
-    const lastId = messages.length ? messages[messages.length - 1].id : 0;
-    if (lastId <= 0) return;
-    void api(`/conversations/${cid}/read?last_message_id=${lastId}`, { method: "POST" });
-  }, [messages, ready, cid]);
+    lastMarkedReadId.current = 0;
+    atBottomRef.current = true;
+  }, [cid]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && typeof Notification !== "undefined") {
+      setShowNotifyPrompt(Notification.permission === "default");
+    }
+  }, []);
 
   useEffect(() => {
     if (!ready || !Number.isFinite(cid)) return;
 
     function tick() {
-      if (typeof document !== "undefined" && document.hidden) return;
       void (async () => {
         try {
+          const box = scrollRef.current;
+          const wasNearBottom = box ? isScrollNearBottom(box) : true;
           const [newer, typingRes] = await Promise.all([
             api<Message[]>(`/conversations/${cid}/messages?after_id=${lastIdRef.current}`),
             api<{ typing_user_ids: number[] }>(`/conversations/${cid}/typing`),
           ]);
-          setPeerTyping((typingRes.typing_user_ids?.length ?? 0) > 0);
+          if (typeof document !== "undefined" && !document.hidden) {
+            setPeerTyping((typingRes.typing_user_ids?.length ?? 0) > 0);
+          }
           if (newer.length) {
+            const me = meId;
+            const fromPeer = me != null && newer.some((m) => m.sender_id !== me);
+            if (fromPeer && typeof document !== "undefined" && document.hidden) {
+              playSoftMessagePing();
+              const last = newer[newer.length - 1];
+              const snippet = (last.body || last.attachment?.original_name || "Сообщение").slice(0, 120);
+              showChatNotificationIfAllowed(peerName || "Чат", snippet);
+            }
             setMessages((m) => {
               const merged = mergeById(m, newer);
               if (merged !== m) {
@@ -126,6 +166,11 @@ export default function ChatPage() {
               }
               return merged;
             });
+            if (wasNearBottom) {
+              atBottomRef.current = true;
+            } else {
+              atBottomRef.current = false;
+            }
           }
         } catch {
           /* тихо при фоновом опросе */
@@ -139,7 +184,17 @@ export default function ChatPage() {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", tick);
     };
-  }, [ready, cid]);
+  }, [ready, cid, meId, peerName]);
+
+  useEffect(() => {
+    function onVis() {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        tryMarkRead();
+      }
+    }
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [tryMarkRead]);
 
   useEffect(() => {
     if (!ready || !Number.isFinite(cid)) return;
@@ -176,6 +231,7 @@ export default function ChatPage() {
       });
       setBody("");
       setReplyTo(null);
+      atBottomRef.current = true;
       const newer = await api<Message[]>(
         `/conversations/${cid}/messages?after_id=${lastIdRef.current}`
       );
@@ -205,6 +261,7 @@ export default function ChatPage() {
       const msg = await postFormData<Message>(`/conversations/${cid}/messages/upload`, fd);
       setBody("");
       setReplyTo(null);
+      atBottomRef.current = true;
       setMessages((m) => [...m, msg]);
       lastIdRef.current = msg.id;
       if (fileRef.current) fileRef.current.value = "";
@@ -271,6 +328,20 @@ export default function ChatPage() {
         <Link href="/conversations" className="text-zinc-500 text-sm">
           ←
         </Link>
+        {showNotifyPrompt ? (
+          <button
+            type="button"
+            className="text-[10px] text-sky-500/90 hover:text-sky-400 shrink-0 whitespace-nowrap"
+            onClick={() =>
+              void (async () => {
+                const p = await requestNotificationPermission();
+                setShowNotifyPrompt(p === "default");
+              })()
+            }
+          >
+            Уведомления
+          </button>
+        ) : null}
         <div className="flex flex-col min-w-0 flex-1">
           {otherUserId != null ? (
             <Link href={`/users/${otherUserId}`} className="font-medium truncate hover:text-emerald-300">
@@ -334,7 +405,16 @@ export default function ChatPage() {
           </div>
         </div>
       )}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        onScroll={() => {
+          const box = scrollRef.current;
+          if (!box) return;
+          atBottomRef.current = isScrollNearBottom(box);
+          tryMarkRead();
+        }}
+      >
         {messages.map((m) => {
           const mine = meId !== null && m.sender_id === meId;
           return (

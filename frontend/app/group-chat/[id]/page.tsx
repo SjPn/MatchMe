@@ -4,6 +4,12 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
+import {
+  isScrollNearBottom,
+  playSoftMessagePing,
+  requestNotificationPermission,
+  showChatNotificationIfAllowed,
+} from "@/lib/chatClient";
 import { api } from "@/lib/api";
 
 type ReplyPreview = {
@@ -58,14 +64,35 @@ export default function GroupChatPage() {
   const [reportReason, setReportReason] = useState("");
   const lastIdRef = useRef(0);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<Message[]>([]);
+  const atBottomRef = useRef(true);
+  const lastMarkedReadId = useRef(0);
+  const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
 
-  const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  messagesRef.current = messages;
+
+  const tryMarkRead = useCallback(() => {
+    if (!ready || !Number.isFinite(rid)) return;
+    if (typeof document !== "undefined" && document.hidden) return;
+    const box = scrollRef.current;
+    if (!box || !isScrollNearBottom(box)) return;
+    const list = messagesRef.current;
+    const lastId = list.length ? list[list.length - 1].id : 0;
+    if (lastId <= 0 || lastId <= lastMarkedReadId.current) return;
+    lastMarkedReadId.current = lastId;
+    void api(`/group-rooms/${rid}/read?last_message_id=${lastId}`, { method: "POST" });
+  }, [ready, rid]);
 
   useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+    if (!ready) return;
+    const box = scrollRef.current;
+    if (!box) return;
+    if (atBottomRef.current) {
+      box.scrollTop = box.scrollHeight;
+      tryMarkRead();
+    }
+  }, [messages, ready, tryMarkRead]);
 
   useEffect(() => {
     if (!Number.isFinite(rid)) return;
@@ -93,25 +120,46 @@ export default function GroupChatPage() {
     };
   }, [rid]);
 
-  // Mark messages as read when group chat is open and visible.
   useEffect(() => {
-    if (!ready || !Number.isFinite(rid)) return;
-    if (typeof document !== "undefined" && document.hidden) return;
-    const lastId = messages.length ? messages[messages.length - 1].id : 0;
-    if (lastId <= 0) return;
-    void api(`/group-rooms/${rid}/read?last_message_id=${lastId}`, { method: "POST" });
-  }, [messages, ready, rid]);
+    lastMarkedReadId.current = 0;
+    atBottomRef.current = true;
+  }, [rid]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && typeof Notification !== "undefined") {
+      setShowNotifyPrompt(Notification.permission === "default");
+    }
+  }, []);
+
+  useEffect(() => {
+    function onVis() {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        tryMarkRead();
+      }
+    }
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
+  }, [tryMarkRead]);
 
   useEffect(() => {
     if (!ready || !Number.isFinite(rid)) return;
     function tick() {
-      if (typeof document !== "undefined" && document.hidden) return;
       void (async () => {
         try {
+          const box = scrollRef.current;
+          const wasNearBottom = box ? isScrollNearBottom(box) : true;
           const newer = await api<Message[]>(
             `/group-rooms/${rid}/messages?after_id=${lastIdRef.current}`
           );
           if (newer.length) {
+            const me = meId;
+            const fromOthers = me != null && newer.some((m) => m.sender_id !== me);
+            if (fromOthers && typeof document !== "undefined" && document.hidden) {
+              playSoftMessagePing();
+              const last = newer[newer.length - 1];
+              const snippet = (last.body || "").slice(0, 120) || "Сообщение в группе";
+              showChatNotificationIfAllowed(room?.title || "Группа", snippet);
+            }
             setMessages((m) => {
               const merged = mergeById(m, newer);
               if (merged !== m) {
@@ -119,6 +167,11 @@ export default function GroupChatPage() {
               }
               return merged;
             });
+            if (wasNearBottom) {
+              atBottomRef.current = true;
+            } else {
+              atBottomRef.current = false;
+            }
           }
         } catch {
           /* ignore */
@@ -131,7 +184,7 @@ export default function GroupChatPage() {
       window.clearInterval(id);
       document.removeEventListener("visibilitychange", tick);
     };
-  }, [ready, rid]);
+  }, [ready, rid, meId, room?.title]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -146,6 +199,7 @@ export default function GroupChatPage() {
       });
       setBody("");
       setReplyTo(null);
+      atBottomRef.current = true;
       const newer = await api<Message[]>(`/group-rooms/${rid}/messages?after_id=${lastIdRef.current}`);
       if (newer.length) {
         setMessages((m) => {
@@ -225,6 +279,20 @@ export default function GroupChatPage() {
           <Link href="/conversations" className="text-zinc-500 text-sm">
             ←
           </Link>
+          {showNotifyPrompt ? (
+            <button
+              type="button"
+              className="text-[10px] text-sky-500/90 hover:text-sky-400 shrink-0 whitespace-nowrap"
+              onClick={() =>
+                void (async () => {
+                  const p = await requestNotificationPermission();
+                  setShowNotifyPrompt(p === "default");
+                })()
+              }
+            >
+              Уведомления
+            </button>
+          ) : null}
           <div className="min-w-0 flex-1">
             <p className="font-medium truncate">{room?.title ?? "Группа"}</p>
             <p className="text-[10px] text-zinc-500">
@@ -312,7 +380,16 @@ export default function GroupChatPage() {
         </details>
       ) : null}
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        onScroll={() => {
+          const box = scrollRef.current;
+          if (!box) return;
+          atBottomRef.current = isScrollNearBottom(box);
+          tryMarkRead();
+        }}
+      >
         {messages.map((m) => {
           const mine = meId !== null && m.sender_id === meId;
           const label = m.sender_display_name || (mine ? "Вы" : `Участник #${m.sender_id}`);
