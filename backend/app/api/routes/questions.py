@@ -1,6 +1,6 @@
 import json
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -14,6 +14,7 @@ router = APIRouter(prefix="/questions", tags=["questions"])
 
 @router.get("", response_model=list[QuestionOut])
 def list_questions(
+    response: Response,
     pack: str = Query(default="onboarding"),
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
@@ -52,4 +53,6 @@ def list_questions(
                 axes=[AxisBrief(slug=a.slug, name=a.name) for a in q.axes],
             )
         )
+    # Список вопросов не должен кэшироваться CDN/браузером — иначе после сида на проде виден старый набор.
+    response.headers["Cache-Control"] = "private, no-store, max-age=0"
     return out

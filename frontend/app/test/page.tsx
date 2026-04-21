@@ -116,7 +116,9 @@ export default function TestPage() {
           router.replace("/feed");
           return;
         }
-        const data = await api<Question[]>("/questions?pack=onboarding");
+        const data = await api<Question[]>("/questions?pack=onboarding", {
+          cache: "no-store",
+        });
         if (cancelled) return;
         setQuestions(data.sort((a, b) => a.order_index - b.order_index || a.id - b.id));
       } catch (e) {
