@@ -5,7 +5,7 @@
 ## Требования
 
 - **Node.js 20+**
-- **Android Studio** (SDK, эмулятор или устройство с USB-отладкой) — **Hedgehog / Ladybug** и новее; в проекте зафиксирован **Android Gradle Plugin 8.7.2** (если Studio ругается на «unsupported AGP», обнови Studio **или** подними AGP в `android/build.gradle` в паре с [таблицей совместимости](https://developer.android.com/build/releases/gradle-plugin#updating-gradle)).
+- **Android Studio** (SDK, эмулятор или устройство с USB-отладкой) — **Hedgehog / Ladybug** и новее; в проекте зафиксирован **Android Gradle Plugin 8.7.2** и **AndroidX** (activity/core и т.д.) без требования AGP 8.9.1+; при обновлении Capacitor при необходимости снова проверь `android/variables.gradle` и блок `resolutionStrategy` в `android/build.gradle`. Таблица AGP / Gradle: [developer.android.com/build/releases/gradle-plugin](https://developer.android.com/build/releases/gradle-plugin#updating-gradle).
 - **JDK 17** (часто идёт в составе Android Studio)
 
 ## 1. URL фронта

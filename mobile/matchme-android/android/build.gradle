@@ -25,6 +25,21 @@ allprojects {
     }
 }
 
+// Capacitor-подмодули могут по умолчанию тянуть activity/core 1.11+/1.17+ — принудительно выравниваем под AGP 8.7.2.
+subprojects { subproject ->
+    subproject.configurations.configureEach { configuration ->
+        configuration.resolutionStrategy {
+            force "androidx.activity:activity:1.9.2"
+            force "androidx.core:core:1.13.1"
+            force "androidx.core:core-ktx:1.13.1"
+            // Cordova / старые транзитивы тянут kotlin 1.6.x jdk7/jdk8 — дубли с kotlin-stdlib 1.8+
+            force "org.jetbrains.kotlin:kotlin-stdlib:1.9.24"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.24"
+            force "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.24"
+        }
+    }
+}
+
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
