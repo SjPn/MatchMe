@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>MatchMe</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100dvh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        background: #09090b;
+        color: #a1a1aa;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          sans-serif;
+        line-height: 1.5;
+        font-size: 15px;
+      }
+      .card {
+        max-width: 22rem;
+        border: 1px solid #27272a;
+        border-radius: 0.75rem;
+        padding: 1.25rem;
+        background: #18181b;
+      }
+      h1 {
+        margin: 0 0 0.5rem;
+        color: #fafafa;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      code {
+        display: block;
+        margin-top: 0.75rem;
+        padding: 0.5rem 0.65rem;
+        background: #09090b;
+        border-radius: 0.5rem;
+        color: #6ee7b7;
+        font-size: 0.8rem;
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>MatchMe (оболочка)</h1>
+      <p>
+        Задай <strong>MATCHME_WEB_URL</strong> — URL твоего <strong>Next.js</strong> (где
+        крутится фронт), затем:
+      </p>
+      <code
+        >$env:MATCHME_WEB_URL="https://твой-фронт.onrender.com"
+npx cap sync android</code
+      >
+      <p style="margin-top: 0.9rem; font-size: 0.85rem; opacity: 0.9">
+        Подробности в <code style="display: inline; padding: 0 0.2rem; font-size: 0.85rem"
+          >mobile/matchme-android/README.md</code
+        >.
+      </p>
+    </div>
+  </body>
+</html>

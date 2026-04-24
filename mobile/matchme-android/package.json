@@ -1,0 +1,24 @@
+{
+  "name": "matchme-android-shell",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Capacitor shell: MatchMe Next.js в WebView",
+  "scripts": {
+    "postinstall": "node ./scripts/postinstall-check.mjs",
+    "config:print": "node -e \"console.log('MATCHME_WEB_URL=', process.env.MATCHME_WEB_URL || '(not set — will use www/)')\"",
+    "sync": "npx cap sync android",
+    "open:android": "npx cap open android",
+    "android:build": "npx cap sync android && npx cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.0.1",
+    "@capacitor/app": "^8.0.1",
+    "@capacitor/core": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.1",
+    "typescript": "^5.4.0"
+  }
+}

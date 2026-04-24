@@ -1,0 +1,10 @@
+# Capacitor / Android
+node_modules/
+android/app/build/
+android/.gradle/
+android/build/
+android/local.properties
+*.apk
+*.aab
+.DS_Store
+.idea/

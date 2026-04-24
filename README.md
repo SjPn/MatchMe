@@ -126,6 +126,10 @@ npm run dev
 
 http://localhost:3000 · API по умолчанию http://127.0.0.1:8000
 
+### Мобильное приложение (Android)
+
+Отдельный проект **Capacitor** в каталоге **`mobile/matchme-android/`**: нативная оболочка с **WebView**, открывающая задеплоенный **Next.js** (задаётся **`MATCHME_WEB_URL`** при `npx cap sync android`). Сборка через **Android Studio**; детали — **`mobile/README.md`** и **`mobile/matchme-android/README.md`**.
+
 **Пустая лента после перехода на PostgreSQL:** чаще всего браузер ходит **не в тот** процесс uvicorn (другой порт, старый SQLite). Оставьте **`NEXT_PUBLIC_API_URL` пустым** в `.env.local`, чтобы запросы шли на `/api` и проксировались через Next (`BACKEND_URL` → тот же бэкенд, что с `DATABASE_URL`). Если задаёте прямой URL API — это должен быть **тот же** uvicorn, что читает `backend/.env`. В ответе **`GET /auth/me`** есть поле `server_db_kind` (`sqlite` / `postgresql`); **`GET /feed/meta`** показывает, сколько других пользователей видит API в этой БД. Лента **не фильтрует** «только похожих» — в выборку попадают все остальные пользователи в этой БД (кроме блокировок и текстового поиска по «о себе»).
 
 После входа пользователи с **уже пройденным** первым тестом (`onboarding_step=test_completed`) попадают в **ленту** (`/feed`), а не в первый тест заново. Прямой заход на **`/test`** (без параметров) при завершённом первом блоке перенаправляет на ленту. Заход на **`/test?pack=onboarding_plus`** доступен только при `test_completed`; если все вопросы плюс-пака уже отвечены — редирект на **`/summary`**.
@@ -164,6 +168,7 @@ http://localhost:3000 · API по умолчанию http://127.0.0.1:8000
 | `frontend/components/BottomNav.tsx` | Нижняя навигация (иконки, активный маршрут, **бейдж непрочитанных** на «Чаты») |
 | `frontend/app/` | Остальные страницы Next.js App Router |
 | `CONCEPT.md`, `MVP_FLOW.md`, `TODO.md` | Продукт, экраны, чеклист |
+| `mobile/matchme-android/` | **Android (Capacitor):** `npm install`, задать `MATCHME_WEB_URL`, `npx cap sync android`, `npx cap open android` |
 | `render.yaml` | Черновик сервиса API для Render.com (переменные — только в Dashboard) |
 
 ## Дальше
