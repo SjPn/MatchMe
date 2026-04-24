@@ -10,9 +10,9 @@
 
 ## 1. URL фронта
 
-Перед `cap sync` задайте переменную **`MATCHME_WEB_URL`** — полный `https://...` до вашего Next **без** хвостового `/`, например:
+По умолчанию в **`capacitor.config.ts`** задан прод-фронт **`https://matchme-fo7z.onrender.com`** — достаточно **`npx cap sync android`** без переменных.
 
-`https://matchme-frontend.onrender.com`
+Переопределение: перед sync задайте **`MATCHME_WEB_URL`** — полный `https://...` до вашего Next **без** хвостового `/`. Пустая строка (`$env:MATCHME_WEB_URL=""`) — собрать без remote, только заглушка из **`www/`**.
 
 Локальная сеть (эмулятор к хосту): часто `http://10.0.2.2:3000` (HTTP). Для cleartext см. `capacitor.config.ts` (`cleartext: true` при `http://`).
 

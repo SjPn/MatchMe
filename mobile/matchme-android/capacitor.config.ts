@@ -1,13 +1,15 @@
 import type { CapacitorConfig } from "@capacitor/cli";
 
 /**
- * Укажи публичный URL Next.js (Render / Vercel / свой домен), без хвостового /.
- * Запуск: в PowerShell перед sync:
- *   $env:MATCHME_WEB_URL="https://matchme-frontend.onrender.com"; npx cap sync android
- *
- * Если переменная не задана — WebView откроет локальную заглушку из www/ (см. www/index.html).
+ * Прод по умолчанию: фронт на Render. Переопределение: `MATCHME_WEB_URL` (пустая строка = только www/ без remote).
  */
-const webUrl = (process.env.MATCHME_WEB_URL || "").replace(/\/$/, "").trim() || undefined;
+const PROD_FRONTEND = "https://matchme-fo7z.onrender.com";
+
+const explicit = process.env.MATCHME_WEB_URL;
+const webUrl =
+  explicit === ""
+    ? undefined
+    : (explicit ?? PROD_FRONTEND).replace(/\/$/, "").trim() || undefined;
 
 const isHttp = webUrl?.startsWith("http://") ?? false;
 
