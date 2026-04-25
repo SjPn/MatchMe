@@ -322,6 +322,22 @@ export default function SummaryPage() {
               Дополнительный блок из 10 вопросов пройден — оси профиля обновлены с учётом этих ответов.
             </p>
           ) : null}
+          <div className="rounded-lg border border-zinc-800 bg-zinc-950/20 px-3 py-2">
+            <p className="text-xs text-zinc-400">
+              Android-приложение:{" "}
+              <a
+                href="/downloads/MatchMe.apk"
+                download
+                className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+              >
+                скачать APK
+              </a>
+            </p>
+            <p className="text-[11px] text-zinc-600 mt-1 leading-relaxed">
+              Установка: открой файл на Android и разреши установку из неизвестных источников для браузера/файлового
+              менеджера.
+            </p>
+          </div>
           <div>
             <label htmlFor="summary-about" className="text-sm text-zinc-400 block">
               Несколько слов о себе
