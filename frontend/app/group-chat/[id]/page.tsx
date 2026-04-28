@@ -69,8 +69,35 @@ export default function GroupChatPage() {
   const atBottomRef = useRef(true);
   const lastMarkedReadId = useRef(0);
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   messagesRef.current = messages;
+
+  function autosizeInput() {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const cs = window.getComputedStyle(el);
+    const lineH = Number.parseFloat(cs.lineHeight || "0") || 20;
+    const padTop = Number.parseFloat(cs.paddingTop || "0") || 0;
+    const padBottom = Number.parseFloat(cs.paddingBottom || "0") || 0;
+    const borderTop = Number.parseFloat(cs.borderTopWidth || "0") || 0;
+    const borderBottom = Number.parseFloat(cs.borderBottomWidth || "0") || 0;
+    const maxH = lineH * 7 + padTop + padBottom + borderTop + borderBottom;
+    const next = Math.min(el.scrollHeight, maxH);
+    el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > maxH ? "auto" : "hidden";
+  }
+
+  function hideKeyboard() {
+    const el = inputRef.current;
+    if (!el) return;
+    try {
+      el.blur();
+    } catch {
+      /* ignore */
+    }
+  }
 
   const tryMarkRead = useCallback(() => {
     if (!ready || !Number.isFinite(rid)) return;
@@ -186,6 +213,26 @@ export default function GroupChatPage() {
     };
   }, [ready, rid, meId, room?.title]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    autosizeInput();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [body]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    function onResize() {
+      autosizeInput();
+    }
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!body.trim()) return;
@@ -200,6 +247,11 @@ export default function GroupChatPage() {
       setBody("");
       setReplyTo(null);
       atBottomRef.current = true;
+      hideKeyboard();
+      if (inputRef.current) {
+        inputRef.current.style.height = "auto";
+        inputRef.current.style.overflowY = "hidden";
+      }
       const newer = await api<Message[]>(`/group-rooms/${rid}/messages?after_id=${lastIdRef.current}`);
       if (newer.length) {
         setMessages((m) => {
@@ -383,6 +435,7 @@ export default function GroupChatPage() {
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        onPointerDown={() => hideKeyboard()}
         onScroll={() => {
           const box = scrollRef.current;
           if (!box) return;
@@ -480,7 +533,11 @@ export default function GroupChatPage() {
       )}
 
       {error && <p className="px-4 text-red-400 text-sm shrink-0">{error}</p>}
-      <form onSubmit={send} className="border-t border-zinc-800 p-4 flex flex-col gap-2 shrink-0">
+      <form
+        onSubmit={send}
+        className="border-t border-zinc-800 p-4 flex flex-col gap-2 shrink-0"
+        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+      >
         {replyTo && (
           <div className="flex items-center justify-between gap-2 rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-xs">
             <span className="text-zinc-300 line-clamp-2">Ответ: {replyTo.body_snippet}</span>
@@ -506,10 +563,23 @@ export default function GroupChatPage() {
           ))}
         </div>
         <div className="flex gap-2">
-          <input
-            className="flex-1 rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm"
+          <textarea
+            ref={inputRef}
+            rows={1}
+            className="flex-1 rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm leading-5 resize-none overflow-hidden"
             value={body}
             onChange={(e) => setBody(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                if (body.trim()) void send(e as unknown as React.FormEvent);
+                return;
+              }
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                if (body.trim()) void send(e as unknown as React.FormEvent);
+              }
+            }}
             placeholder="Сообщение в группу…"
           />
           <button
@@ -522,6 +592,9 @@ export default function GroupChatPage() {
         </div>
         <p className="text-[10px] text-zinc-600">
           Лимит сервера: не больше ~15 сообщений в минуту на человека.
+        </p>
+        <p className="text-[10px] text-zinc-600">
+          Enter — отправить · Shift+Enter — новая строка · Ctrl/⌘+Enter — отправить
         </p>
       </form>
       <BottomNav />

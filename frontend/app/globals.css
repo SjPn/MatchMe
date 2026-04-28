@@ -63,7 +63,7 @@
 
   /** Полноэкранный чат (колонка + нижняя навигация) */
   .mm-page-chat {
-    @apply min-h-screen flex flex-col text-zinc-100 max-w-shell lg:max-w-shell-wide mx-auto pb-28;
+    @apply flex h-[100dvh] max-h-[100dvh] min-h-0 flex-col overflow-hidden text-zinc-100 max-w-shell lg:max-w-shell-wide mx-auto pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))];
   }
 
   /** Онбординг / центрированные шаги */
