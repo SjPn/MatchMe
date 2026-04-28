@@ -2,16 +2,11 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { MessageBubble } from "@/components/chat/MessageBubble";
-import {
-  isScrollNearBottom,
-  playSoftMessagePing,
-  requestNotificationPermission,
-  showChatNotificationIfAllowed,
-} from "@/lib/chatClient";
+import { isScrollNearBottom, playSoftMessagePing, requestNotificationPermission, showChatNotificationIfAllowed } from "@/lib/chatClient";
 import { useChatPolling } from "@/lib/hooks/useChatPolling";
 import { api } from "@/lib/api";
 
@@ -69,17 +64,6 @@ export default function GroupChatPage() {
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
-
-  const tryMarkRead = useCallback(() => {
-    if (!ready || !Number.isFinite(rid)) return;
-    if (typeof document !== "undefined" && document.hidden) return;
-    const box = scrollRef.current;
-    if (!box || !isScrollNearBottom(box)) return;
-    const list = messagesRef.current;
-    const lastId = list.length ? list[list.length - 1].id : 0;
-    if (lastId <= 0) return;
-    void api(`/group-rooms/${rid}/read?last_message_id=${lastId}`, { method: "POST" });
-  }, [ready, rid]);
 
   const polling = useChatPolling<Message>({
     enabled: ready && Number.isFinite(rid),
