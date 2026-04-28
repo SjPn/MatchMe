@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { MessageBubble } from "@/components/chat/MessageBubble";
@@ -63,11 +63,11 @@ export default function ChatPage() {
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const typingIntervalRef = useRef<number | null>(null);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
   const didInitialScrollRef = useRef<{ cid: number; done: boolean }>({ cid: -1, done: false });
+  const messagesNewestFirst = useMemo(() => [...messages].reverse(), [messages]);
 
   const tryMarkRead = useCallback(() => {
     if (!ready || !Number.isFinite(cid)) return;
@@ -154,18 +154,11 @@ export default function ChatPage() {
     if (!box) return;
     if (messages.length < 1) return;
     didInitialScrollRef.current.done = true;
+    // With flex-col-reverse list, "latest messages" live at scrollTop=0.
     polling.atBottomRef.current = true;
-    // Make the initial jump robust to late layout changes (fonts, safe-area, etc.)
     const doScroll = () => {
       try {
-        // anchor-based scroll is more robust than scrollTop=scrollHeight with scroll anchoring
-        bottomRef.current?.scrollIntoView({ block: "end" });
-      } catch {
-        /* ignore */
-      }
-      try {
-        // Hard force for browsers that restore scroll position after navigation
-        box.scrollTop = box.scrollHeight + 100000;
+        box.scrollTop = 0;
       } catch {
         /* ignore */
       }
@@ -179,7 +172,7 @@ export default function ChatPage() {
         doScroll();
         t.push(window.setTimeout(doScroll, 0));
         t.push(window.setTimeout(doScroll, 180));
-        // For ~1s keep forcing bottom; then stop.
+        // For ~1s keep forcing the "latest" position; then stop.
         iv = window.setInterval(doScroll, 60);
         t.push(
           window.setTimeout(() => {
@@ -420,7 +413,7 @@ export default function ChatPage() {
       )}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        className="flex-1 overflow-y-auto px-4 py-4 flex flex-col-reverse gap-3"
         style={{ overflowAnchor: "none" }}
         onPointerDown={() => {
           // composer handles keyboard too, but tapping the list should also hide it
@@ -434,7 +427,7 @@ export default function ChatPage() {
           polling.onScroll();
         }}
       >
-        {messages.map((m) => {
+        {messagesNewestFirst.map((m) => {
           const mine = meId !== null && m.sender_id === meId;
           const rp = m.reply_to;
           return (
@@ -460,7 +453,6 @@ export default function ChatPage() {
         {!messages.length && ready && (
           <p className="text-zinc-500 text-sm">Пока пусто — напиши первым.</p>
         )}
-        <div ref={bottomRef} style={{ overflowAnchor: "none" }} />
       </div>
       {infoMsg && <p className="px-4 text-emerald-400/90 text-sm shrink-0">{infoMsg}</p>}
       {error && <p className="px-4 text-red-400 text-sm shrink-0">{error}</p>}

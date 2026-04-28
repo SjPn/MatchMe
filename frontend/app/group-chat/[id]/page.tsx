@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { MessageBubble } from "@/components/chat/MessageBubble";
@@ -61,11 +61,11 @@ export default function GroupChatPage() {
   const [reportFor, setReportFor] = useState<number | null>(null);
   const [reportReason, setReportReason] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
   const didInitialScrollRef = useRef<{ rid: number; done: boolean }>({ rid: -1, done: false });
+  const messagesNewestFirst = useMemo(() => [...messages].reverse(), [messages]);
 
   const polling = useChatPolling<Message>({
     enabled: ready && Number.isFinite(rid),
@@ -132,12 +132,7 @@ export default function GroupChatPage() {
     polling.atBottomRef.current = true;
     const doScroll = () => {
       try {
-        bottomRef.current?.scrollIntoView({ block: "end" });
-      } catch {
-        /* ignore */
-      }
-      try {
-        box.scrollTop = box.scrollHeight + 100000;
+        box.scrollTop = 0;
       } catch {
         /* ignore */
       }
@@ -370,7 +365,7 @@ export default function GroupChatPage() {
 
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        className="flex-1 overflow-y-auto px-4 py-4 flex flex-col-reverse gap-3"
         style={{ overflowAnchor: "none" }}
         onPointerDown={() => {
           try {
@@ -383,7 +378,7 @@ export default function GroupChatPage() {
           polling.onScroll();
         }}
       >
-        {messages.map((m) => {
+        {messagesNewestFirst.map((m) => {
           const mine = meId !== null && m.sender_id === meId;
           const label = m.sender_display_name || (mine ? "Вы" : `Участник #${m.sender_id}`);
           const rp = m.reply_to;
@@ -408,7 +403,6 @@ export default function GroupChatPage() {
         {!messages.length && ready && (
           <p className="text-zinc-500 text-sm">Пока тихо — можно начать с вопроса дня выше.</p>
         )}
-        <div ref={bottomRef} style={{ overflowAnchor: "none" }} />
       </div>
 
       {reportFor !== null && (
