@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
+import { ChatComposer } from "@/components/chat/ChatComposer";
+import { MessageBubble } from "@/components/chat/MessageBubble";
 import {
   isScrollNearBottom,
   playSoftMessagePing,
   requestNotificationPermission,
   showChatNotificationIfAllowed,
 } from "@/lib/chatClient";
+import { useChatPolling } from "@/lib/hooks/useChatPolling";
 import { api } from "@/lib/api";
 
 type ReplyPreview = {
@@ -41,7 +44,7 @@ type RoomDetail = {
   you_muted: boolean;
 };
 
-const STICKERS = ["😀", "🔥", "👋", "✨", "💬", "🙌", "🤝", "❤️"];
+const EMOJIS = ["😀", "🔥", "👋", "✨", "💬", "🙌", "🤝", "❤️"];
 
 function mergeById(prev: Message[], incoming: Message[]): Message[] {
   const ids = new Set(prev.map((x) => x.id));
@@ -62,64 +65,10 @@ export default function GroupChatPage() {
   const [replyTo, setReplyTo] = useState<ReplyPreview | null>(null);
   const [reportFor, setReportFor] = useState<number | null>(null);
   const [reportReason, setReportReason] = useState("");
-  const lastIdRef = useRef(0);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const messagesRef = useRef<Message[]>([]);
-  const atBottomRef = useRef(true);
-  const lastMarkedReadId = useRef(0);
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [emojiOpen, setEmojiOpen] = useState(false);
-
+  const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
-
-  function insertAtCursor(text: string) {
-    const el = inputRef.current;
-    if (!el) {
-      setBody((b) => (b ? `${b}${text}` : text));
-      return;
-    }
-    const start = el.selectionStart ?? el.value.length;
-    const end = el.selectionEnd ?? el.value.length;
-    const next = `${body.slice(0, start)}${text}${body.slice(end)}`;
-    setBody(next);
-    const caret = start + text.length;
-    requestAnimationFrame(() => {
-      try {
-        el.focus();
-        el.setSelectionRange(caret, caret);
-      } catch {
-        /* ignore */
-      }
-    });
-  }
-
-  function autosizeInput() {
-    const el = inputRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    const cs = window.getComputedStyle(el);
-    const lineH = Number.parseFloat(cs.lineHeight || "0") || 20;
-    const padTop = Number.parseFloat(cs.paddingTop || "0") || 0;
-    const padBottom = Number.parseFloat(cs.paddingBottom || "0") || 0;
-    const borderTop = Number.parseFloat(cs.borderTopWidth || "0") || 0;
-    const borderBottom = Number.parseFloat(cs.borderBottomWidth || "0") || 0;
-    const maxH = lineH * 7 + padTop + padBottom + borderTop + borderBottom;
-    const next = Math.min(el.scrollHeight, maxH);
-    el.style.height = `${next}px`;
-    el.style.overflowY = el.scrollHeight > maxH ? "auto" : "hidden";
-  }
-
-  function hideKeyboard() {
-    const el = inputRef.current;
-    if (!el) return;
-    try {
-      el.blur();
-    } catch {
-      /* ignore */
-    }
-  }
 
   const tryMarkRead = useCallback(() => {
     if (!ready || !Number.isFinite(rid)) return;
@@ -128,20 +77,35 @@ export default function GroupChatPage() {
     if (!box || !isScrollNearBottom(box)) return;
     const list = messagesRef.current;
     const lastId = list.length ? list[list.length - 1].id : 0;
-    if (lastId <= 0 || lastId <= lastMarkedReadId.current) return;
-    lastMarkedReadId.current = lastId;
+    if (lastId <= 0) return;
     void api(`/group-rooms/${rid}/read?last_message_id=${lastId}`, { method: "POST" });
   }, [ready, rid]);
 
-  useEffect(() => {
-    if (!ready) return;
-    const box = scrollRef.current;
-    if (!box) return;
-    if (atBottomRef.current) {
-      box.scrollTop = box.scrollHeight;
-      tryMarkRead();
-    }
-  }, [messages, ready, tryMarkRead]);
+  const polling = useChatPolling<Message>({
+    enabled: ready && Number.isFinite(rid),
+    intervalMs: 2500,
+    scrollRef,
+    isTabHidden: () => (typeof document !== "undefined" ? document.hidden : false),
+    isNearBottom: (el) => isScrollNearBottom(el, 96),
+    getMessages: () => messagesRef.current,
+    getId: (m) => m.id,
+    merge: mergeById,
+    setMessages,
+    fetchNewer: (afterId) => api<Message[]>(`/group-rooms/${rid}/messages?after_id=${afterId}`),
+    onIncoming: ({ newer }) => {
+      const me = meId;
+      const fromOthers = me != null && newer.some((m) => m.sender_id !== me);
+      if (fromOthers && typeof document !== "undefined" && document.hidden) {
+        playSoftMessagePing();
+        const last = newer[newer.length - 1];
+        const snippet = (last.body || "").slice(0, 120) || "Сообщение в группе";
+        showChatNotificationIfAllowed(room?.title || "Группа", snippet);
+      }
+    },
+    markRead: (lastMessageId) => {
+      void api(`/group-rooms/${rid}/read?last_message_id=${lastMessageId}`, { method: "POST" });
+    },
+  });
 
   useEffect(() => {
     if (!Number.isFinite(rid)) return;
@@ -157,7 +121,6 @@ export default function GroupChatPage() {
         setMeId(me.id);
         setRoom(detail);
         setMessages(all);
-        lastIdRef.current = all.length ? all[all.length - 1].id : 0;
         setReady(true);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Ошибка");
@@ -170,90 +133,11 @@ export default function GroupChatPage() {
   }, [rid]);
 
   useEffect(() => {
-    lastMarkedReadId.current = 0;
-    atBottomRef.current = true;
-  }, [rid]);
-
-  useEffect(() => {
     if (typeof window !== "undefined" && typeof Notification !== "undefined") {
       setShowNotifyPrompt(Notification.permission === "default");
     }
   }, []);
 
-  useEffect(() => {
-    function onVis() {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") {
-        tryMarkRead();
-      }
-    }
-    document.addEventListener("visibilitychange", onVis);
-    return () => document.removeEventListener("visibilitychange", onVis);
-  }, [tryMarkRead]);
-
-  useEffect(() => {
-    if (!ready || !Number.isFinite(rid)) return;
-    function tick() {
-      void (async () => {
-        try {
-          const box = scrollRef.current;
-          const wasNearBottom = box ? isScrollNearBottom(box) : true;
-          const newer = await api<Message[]>(
-            `/group-rooms/${rid}/messages?after_id=${lastIdRef.current}`
-          );
-          if (newer.length) {
-            const me = meId;
-            const fromOthers = me != null && newer.some((m) => m.sender_id !== me);
-            if (fromOthers && typeof document !== "undefined" && document.hidden) {
-              playSoftMessagePing();
-              const last = newer[newer.length - 1];
-              const snippet = (last.body || "").slice(0, 120) || "Сообщение в группе";
-              showChatNotificationIfAllowed(room?.title || "Группа", snippet);
-            }
-            setMessages((m) => {
-              const merged = mergeById(m, newer);
-              if (merged !== m) {
-                lastIdRef.current = merged[merged.length - 1].id;
-              }
-              return merged;
-            });
-            if (wasNearBottom) {
-              atBottomRef.current = true;
-            } else {
-              atBottomRef.current = false;
-            }
-          }
-        } catch {
-          /* ignore */
-        }
-      })();
-    }
-    const id = window.setInterval(tick, 2500);
-    document.addEventListener("visibilitychange", tick);
-    return () => {
-      window.clearInterval(id);
-      document.removeEventListener("visibilitychange", tick);
-    };
-  }, [ready, rid, meId, room?.title]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    autosizeInput();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [body]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    function onResize() {
-      autosizeInput();
-    }
-    window.addEventListener("resize", onResize);
-    window.addEventListener("orientationchange", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("orientationchange", onResize);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -268,20 +152,14 @@ export default function GroupChatPage() {
       });
       setBody("");
       setReplyTo(null);
-      atBottomRef.current = true;
-      hideKeyboard();
-      setEmojiOpen(false);
-      if (inputRef.current) {
-        inputRef.current.style.height = "auto";
-        inputRef.current.style.overflowY = "hidden";
-      }
-      const newer = await api<Message[]>(`/group-rooms/${rid}/messages?after_id=${lastIdRef.current}`);
+      polling.atBottomRef.current = true;
+      const newer = await api<Message[]>(
+        `/group-rooms/${rid}/messages?after_id=${polling.lastIdRef.current}`
+      );
       if (newer.length) {
         setMessages((m) => {
           const merged = mergeById(m, newer);
-          if (merged !== m) {
-            lastIdRef.current = merged[merged.length - 1].id;
-          }
+          if (merged !== m) polling.lastIdRef.current = merged[merged.length - 1].id;
           return merged;
         });
       }
@@ -458,70 +336,42 @@ export default function GroupChatPage() {
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
-        onPointerDown={() => hideKeyboard()}
+        onPointerDown={() => {
+          try {
+            (document.activeElement as HTMLElement | null)?.blur?.();
+          } catch {
+            /* ignore */
+          }
+        }}
         onScroll={() => {
-          const box = scrollRef.current;
-          if (!box) return;
-          atBottomRef.current = isScrollNearBottom(box);
-          tryMarkRead();
+          polling.onScroll();
         }}
       >
         {messages.map((m) => {
           const mine = meId !== null && m.sender_id === meId;
           const label = m.sender_display_name || (mine ? "Вы" : `Участник #${m.sender_id}`);
+          const rp = m.reply_to;
           return (
-            <div
+            <MessageBubble
               key={m.id}
-              className={`rounded-xl border px-3 py-2 text-sm max-w-[min(100%,24rem)] ${
-                mine
-                  ? "ml-auto bg-emerald-500/15 border-emerald-500/40"
-                  : "mr-auto bg-zinc-900/60 border-zinc-800"
-              }`}
-            >
-              <div className="flex justify-between items-start gap-2 mb-1">
-                <p className="text-xs text-zinc-500 truncate">{label}</p>
-                <div className="flex gap-1 shrink-0">
-                  <button
-                    type="button"
-                    className="text-[10px] text-zinc-500 hover:text-emerald-400"
-                    onClick={() =>
-                      setReplyTo({
-                        id: m.id,
-                        sender_id: m.sender_id,
-                        body_snippet: (m.body || "").slice(0, 120),
-                      })
-                    }
-                  >
-                    Ответить
-                  </button>
-                  {!mine ? (
-                    <button
-                      type="button"
-                      className="text-[10px] text-zinc-600 hover:text-amber-500"
-                      onClick={() => setReportFor(m.id)}
-                    >
-                      Жалоба
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-              {m.reply_to ? (
-                <div
-                  className={`mb-2 rounded-lg border px-2 py-1 text-xs ${
-                    mine ? "border-emerald-500/30 bg-black/20" : "border-zinc-700 bg-black/20"
-                  }`}
-                >
-                  <span className="text-zinc-300 line-clamp-2">{m.reply_to.body_snippet}</span>
-                </div>
-              ) : null}
-              {m.body ? <p className="whitespace-pre-wrap break-words">{m.body}</p> : null}
-            </div>
+              mine={mine}
+              headerLeft={label}
+              onReply={() =>
+                setReplyTo({
+                  id: m.id,
+                  sender_id: m.sender_id,
+                  body_snippet: (m.body || "").slice(0, 120),
+                })
+              }
+              onReport={!mine ? () => setReportFor(m.id) : undefined}
+              body={m.body}
+              replyTo={rp ?? null}
+            />
           );
         })}
         {!messages.length && ready && (
           <p className="text-zinc-500 text-sm">Пока тихо — можно начать с вопроса дня выше.</p>
         )}
-        <div ref={bottomRef} />
       </div>
 
       {reportFor !== null && (
@@ -556,11 +406,7 @@ export default function GroupChatPage() {
       )}
 
       {error && <p className="px-4 text-red-400 text-sm shrink-0">{error}</p>}
-      <form
-        onSubmit={send}
-        className="border-t border-zinc-800 p-4 flex flex-col gap-2 shrink-0"
-        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
-      >
+      <form onSubmit={send} className="contents">
         {replyTo && (
           <div className="flex items-center justify-between gap-2 rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-xs">
             <span className="text-zinc-300 line-clamp-2">Ответ: {replyTo.body_snippet}</span>
@@ -573,57 +419,15 @@ export default function GroupChatPage() {
             </button>
           </div>
         )}
-        {emojiOpen ? (
-          <div className="flex flex-wrap gap-1.5">
-            {STICKERS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="text-lg leading-none px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-600"
-                onClick={() => {
-                  insertAtCursor(s);
-                  setEmojiOpen(false);
-                }}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        ) : null}
-        <div className="flex items-center gap-2">
-          <textarea
-            ref={inputRef}
-            rows={1}
-            className="flex-1 rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm leading-5 resize-none overflow-hidden"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                if (body.trim()) void send(e as unknown as React.FormEvent);
-              }
-            }}
-            placeholder="Сообщение в группу…"
-          />
-          <button
-            type="button"
-            className="h-9 w-9 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-lg leading-none flex items-center justify-center shrink-0"
-            onClick={() => setEmojiOpen((v) => !v)}
-            aria-label="Смайлы"
-          >
-            🙂
-          </button>
-          <button
-            type="submit"
-            disabled={!body.trim()}
-            className="rounded-lg bg-emerald-500 text-zinc-950 px-4 py-2 text-sm font-medium disabled:opacity-40"
-          >
-            Отправить
-          </button>
-        </div>
-        <p className="text-[10px] text-zinc-600">
-          Лимит сервера: не больше ~15 сообщений в минуту на человека.
-        </p>
+        <ChatComposer
+          value={body}
+          onChange={setBody}
+          onSend={() => void send({ preventDefault() {} } as unknown as React.FormEvent)}
+          disabled={!ready}
+          placeholder="Сообщение"
+          maxLines={7}
+          emojis={EMOJIS}
+        />
       </form>
       <BottomNav />
     </main>

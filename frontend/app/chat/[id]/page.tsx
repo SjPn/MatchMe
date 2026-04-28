@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
+import { ChatComposer } from "@/components/chat/ChatComposer";
+import { MessageBubble } from "@/components/chat/MessageBubble";
 import {
   isScrollNearBottom,
   playSoftMessagePing,
   requestNotificationPermission,
   showChatNotificationIfAllowed,
 } from "@/lib/chatClient";
+import { useChatPolling } from "@/lib/hooks/useChatPolling";
 import { api, downloadBlob, getToken, postFormData } from "@/lib/api";
 
 type Attachment = {
@@ -32,8 +35,7 @@ type Message = {
   attachment?: Attachment | null;
   reply_to?: ReplyPreview | null;
 };
-
-const STICKERS = ["😀", "🔥", "👋", "✨", "💬", "🙌", "🤝", "❤️", "🎮", "☕"];
+const EMOJIS = ["😀", "🔥", "👋", "✨", "💬", "🙌", "🤝", "❤️", "🎮", "☕"];
 
 function mergeById(prev: Message[], incoming: Message[]): Message[] {
   const ids = new Set(prev.map((x) => x.id));
@@ -60,65 +62,10 @@ export default function ChatPage() {
   const [modBusy, setModBusy] = useState(false);
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
-  const lastIdRef = useRef(0);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const messagesRef = useRef<Message[]>([]);
-  const atBottomRef = useRef(true);
-  const lastMarkedReadId = useRef(0);
-  const fileRef = useRef<HTMLInputElement>(null);
   const typingIntervalRef = useRef<number | null>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [emojiOpen, setEmojiOpen] = useState(false);
-
+  const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
-
-  function insertAtCursor(text: string) {
-    const el = inputRef.current;
-    if (!el) {
-      setBody((b) => (b ? `${b}${text}` : text));
-      return;
-    }
-    const start = el.selectionStart ?? el.value.length;
-    const end = el.selectionEnd ?? el.value.length;
-    const next = `${body.slice(0, start)}${text}${body.slice(end)}`;
-    setBody(next);
-    const caret = start + text.length;
-    requestAnimationFrame(() => {
-      try {
-        el.focus();
-        el.setSelectionRange(caret, caret);
-      } catch {
-        /* ignore */
-      }
-    });
-  }
-
-  function autosizeInput() {
-    const el = inputRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    const cs = window.getComputedStyle(el);
-    const lineH = Number.parseFloat(cs.lineHeight || "0") || 20;
-    const padTop = Number.parseFloat(cs.paddingTop || "0") || 0;
-    const padBottom = Number.parseFloat(cs.paddingBottom || "0") || 0;
-    const borderTop = Number.parseFloat(cs.borderTopWidth || "0") || 0;
-    const borderBottom = Number.parseFloat(cs.borderBottomWidth || "0") || 0;
-    const maxH = lineH * 7 + padTop + padBottom + borderTop + borderBottom;
-    const next = Math.min(el.scrollHeight, maxH);
-    el.style.height = `${next}px`;
-    el.style.overflowY = el.scrollHeight > maxH ? "auto" : "hidden";
-  }
-
-  function hideKeyboard() {
-    const el = inputRef.current;
-    if (!el) return;
-    try {
-      el.blur();
-    } catch {
-      /* ignore */
-    }
-  }
 
   const tryMarkRead = useCallback(() => {
     if (!ready || !Number.isFinite(cid)) return;
@@ -127,20 +74,41 @@ export default function ChatPage() {
     if (!box || !isScrollNearBottom(box)) return;
     const list = messagesRef.current;
     const lastId = list.length ? list[list.length - 1].id : 0;
-    if (lastId <= 0 || lastId <= lastMarkedReadId.current) return;
-    lastMarkedReadId.current = lastId;
+    if (lastId <= 0) return;
     void api(`/conversations/${cid}/read?last_message_id=${lastId}`, { method: "POST" });
   }, [ready, cid]);
 
-  useEffect(() => {
-    if (!ready) return;
-    const box = scrollRef.current;
-    if (!box) return;
-    if (atBottomRef.current) {
-      box.scrollTop = box.scrollHeight;
-      tryMarkRead();
-    }
-  }, [messages, ready, tryMarkRead]);
+  const polling = useChatPolling<Message>({
+    enabled: ready && Number.isFinite(cid),
+    intervalMs: 2000,
+    scrollRef,
+    isTabHidden: () => (typeof document !== "undefined" ? document.hidden : false),
+    isNearBottom: (el) => isScrollNearBottom(el, 96),
+    getMessages: () => messagesRef.current,
+    getId: (m) => m.id,
+    merge: mergeById,
+    setMessages,
+    fetchNewer: (afterId) => api<Message[]>(`/conversations/${cid}/messages?after_id=${afterId}`),
+    fetchSidecar: async () => {
+      const typingRes = await api<{ typing_user_ids: number[] }>(`/conversations/${cid}/typing`);
+      if (typeof document !== "undefined" && !document.hidden) {
+        setPeerTyping((typingRes.typing_user_ids?.length ?? 0) > 0);
+      }
+    },
+    onIncoming: ({ newer }) => {
+      const me = meId;
+      const fromPeer = me != null && newer.some((m) => m.sender_id !== me);
+      if (fromPeer && typeof document !== "undefined" && document.hidden) {
+        playSoftMessagePing();
+        const last = newer[newer.length - 1];
+        const snippet = (last.body || last.attachment?.original_name || "Сообщение").slice(0, 120);
+        showChatNotificationIfAllowed(peerName || "Чат", snippet);
+      }
+    },
+    markRead: (lastMessageId) => {
+      void api(`/conversations/${cid}/read?last_message_id=${lastMessageId}`, { method: "POST" });
+    },
+  });
 
   useEffect(() => {
     if (!getToken()) {
@@ -161,7 +129,6 @@ export default function ChatPage() {
         setOtherUserId(peer.other_user_id);
         setPeerName(peer.other_display_name || `Пользователь #${peer.other_user_id}`);
         setMessages(all);
-        lastIdRef.current = all.length ? all[all.length - 1].id : 0;
         setReady(true);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : "Ошибка");
@@ -174,66 +141,10 @@ export default function ChatPage() {
   }, [cid, router]);
 
   useEffect(() => {
-    lastMarkedReadId.current = 0;
-    atBottomRef.current = true;
-  }, [cid]);
-
-  useEffect(() => {
     if (typeof window !== "undefined" && typeof Notification !== "undefined") {
       setShowNotifyPrompt(Notification.permission === "default");
     }
   }, []);
-
-  useEffect(() => {
-    if (!ready || !Number.isFinite(cid)) return;
-
-    function tick() {
-      void (async () => {
-        try {
-          const box = scrollRef.current;
-          const wasNearBottom = box ? isScrollNearBottom(box) : true;
-          const [newer, typingRes] = await Promise.all([
-            api<Message[]>(`/conversations/${cid}/messages?after_id=${lastIdRef.current}`),
-            api<{ typing_user_ids: number[] }>(`/conversations/${cid}/typing`),
-          ]);
-          if (typeof document !== "undefined" && !document.hidden) {
-            setPeerTyping((typingRes.typing_user_ids?.length ?? 0) > 0);
-          }
-          if (newer.length) {
-            const me = meId;
-            const fromPeer = me != null && newer.some((m) => m.sender_id !== me);
-            if (fromPeer && typeof document !== "undefined" && document.hidden) {
-              playSoftMessagePing();
-              const last = newer[newer.length - 1];
-              const snippet = (last.body || last.attachment?.original_name || "Сообщение").slice(0, 120);
-              showChatNotificationIfAllowed(peerName || "Чат", snippet);
-            }
-            setMessages((m) => {
-              const merged = mergeById(m, newer);
-              if (merged !== m) {
-                lastIdRef.current = merged[merged.length - 1].id;
-              }
-              return merged;
-            });
-            if (wasNearBottom) {
-              atBottomRef.current = true;
-            } else {
-              atBottomRef.current = false;
-            }
-          }
-        } catch {
-          /* тихо при фоновом опросе */
-        }
-      })();
-    }
-
-    const id = window.setInterval(tick, 2000);
-    document.addEventListener("visibilitychange", tick);
-    return () => {
-      window.clearInterval(id);
-      document.removeEventListener("visibilitychange", tick);
-    };
-  }, [ready, cid, meId, peerName]);
 
   useEffect(() => {
     function onVis() {
@@ -265,26 +176,6 @@ export default function ChatPage() {
     };
   }, [body, ready, cid]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    autosizeInput();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [body]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    function onResize() {
-      autosizeInput();
-    }
-    window.addEventListener("resize", onResize);
-    window.addEventListener("orientationchange", onResize);
-    return () => {
-      window.removeEventListener("resize", onResize);
-      window.removeEventListener("orientationchange", onResize);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!body.trim()) return;
@@ -300,22 +191,14 @@ export default function ChatPage() {
       });
       setBody("");
       setReplyTo(null);
-      atBottomRef.current = true;
-      hideKeyboard();
-      setEmojiOpen(false);
-      if (inputRef.current) {
-        inputRef.current.style.height = "auto";
-        inputRef.current.style.overflowY = "hidden";
-      }
+      polling.atBottomRef.current = true;
       const newer = await api<Message[]>(
-        `/conversations/${cid}/messages?after_id=${lastIdRef.current}`
+        `/conversations/${cid}/messages?after_id=${polling.lastIdRef.current}`
       );
       if (newer.length) {
         setMessages((m) => {
           const merged = mergeById(m, newer);
-          if (merged !== m) {
-            lastIdRef.current = merged[merged.length - 1].id;
-          }
+          if (merged !== m) polling.lastIdRef.current = merged[merged.length - 1].id;
           return merged;
         });
       }
@@ -336,16 +219,9 @@ export default function ChatPage() {
       const msg = await postFormData<Message>(`/conversations/${cid}/messages/upload`, fd);
       setBody("");
       setReplyTo(null);
-      atBottomRef.current = true;
-      hideKeyboard();
-      setEmojiOpen(false);
-      if (inputRef.current) {
-        inputRef.current.style.height = "auto";
-        inputRef.current.style.overflowY = "hidden";
-      }
+      polling.atBottomRef.current = true;
       setMessages((m) => [...m, msg]);
-      lastIdRef.current = msg.id;
-      if (fileRef.current) fileRef.current.value = "";
+      polling.lastIdRef.current = msg.id;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ошибка загрузки");
     } finally {
@@ -489,91 +365,48 @@ export default function ChatPage() {
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
-        onPointerDown={() => hideKeyboard()}
+        onPointerDown={() => {
+          // composer handles keyboard too, but tapping the list should also hide it
+          try {
+            (document.activeElement as HTMLElement | null)?.blur?.();
+          } catch {
+            /* ignore */
+          }
+        }}
         onScroll={() => {
-          const box = scrollRef.current;
-          if (!box) return;
-          atBottomRef.current = isScrollNearBottom(box);
-          tryMarkRead();
+          polling.onScroll();
         }}
       >
         {messages.map((m) => {
           const mine = meId !== null && m.sender_id === meId;
+          const rp = m.reply_to;
           return (
-            <div
+            <MessageBubble
               key={m.id}
-              className={`rounded-xl border px-3 py-2 text-sm max-w-[min(100%,24rem)] ${
-                mine
-                  ? "ml-auto bg-emerald-500/15 border-emerald-500/40"
-                  : "mr-auto bg-zinc-900/60 border-zinc-800"
-              }`}
-            >
-              <div className="flex justify-between items-start gap-2 mb-1">
-                {!mine ? (
-                  <p className="text-xs text-zinc-500">Собеседник</p>
-                ) : (
-                  <p className="text-xs text-zinc-500">Вы</p>
-                )}
-                <button
-                  type="button"
-                  className="text-[10px] text-zinc-500 hover:text-emerald-400 shrink-0"
-                  onClick={() =>
-                    setReplyTo({
-                      id: m.id,
-                      sender_id: m.sender_id,
-                      body_snippet: (m.body || m.attachment?.original_name || "вложение").slice(
-                        0,
-                        120
-                      ),
-                    })
-                  }
-                >
-                  Ответить
-                </button>
-              </div>
-              {m.reply_to ? (
-                <div
-                  className={`mb-2 rounded-lg border px-2 py-1 text-xs ${
-                    mine ? "border-emerald-500/30 bg-black/20" : "border-zinc-700 bg-black/20"
-                  }`}
-                >
-                  <span className="text-zinc-500">
-                    {m.reply_to.sender_id === meId ? "Вы: " : "Собеседник: "}
-                  </span>
-                  <span className="text-zinc-300 line-clamp-2">{m.reply_to.body_snippet}</span>
-                </div>
-              ) : null}
-              {m.body ? <p className="whitespace-pre-wrap break-words">{m.body}</p> : null}
-              {m.attachment ? (
-                <div className="mt-2 text-xs">
-                  <a
-                    href="#"
-                    className="text-emerald-400 underline break-all"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      void saveAttachment(m);
-                    }}
-                  >
-                    {m.attachment.original_name}
-                  </a>
-                  <span className="text-zinc-500 ml-2">({m.attachment.mime})</span>
-                </div>
-              ) : null}
-            </div>
+              mine={mine}
+              headerLeft={mine ? "Вы" : "Собеседник"}
+              onReply={() =>
+                setReplyTo({
+                  id: m.id,
+                  sender_id: m.sender_id,
+                  body_snippet: (m.body || m.attachment?.original_name || "вложение").slice(0, 120),
+                })
+              }
+              body={m.body}
+              replyTo={rp ?? null}
+              replyPrefix={rp ? (rp.sender_id === meId ? "Вы: " : "Собеседник: ") : null}
+              attachment={m.attachment ?? null}
+              onAttachmentClick={() => void saveAttachment(m)}
+            />
           );
         })}
         {!messages.length && ready && (
           <p className="text-zinc-500 text-sm">Пока пусто — напиши первым.</p>
         )}
-        <div ref={bottomRef} />
       </div>
       {infoMsg && <p className="px-4 text-emerald-400/90 text-sm shrink-0">{infoMsg}</p>}
       {error && <p className="px-4 text-red-400 text-sm shrink-0">{error}</p>}
-      <form
-        onSubmit={send}
-        className="border-t border-white/[0.06] bg-zinc-950/90 backdrop-blur-md p-4 flex flex-col gap-2 shrink-0 supports-[backdrop-filter]:bg-zinc-950/75"
-        style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
-      >
+      <form onSubmit={send} className="contents">
         {replyTo && (
           <div className="flex items-center justify-between gap-2 rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-xs">
             <div className="min-w-0">
@@ -590,65 +423,24 @@ export default function ChatPage() {
             </button>
           </div>
         )}
-        <div className="flex items-center gap-2">
-          <input
-            type="file"
-            ref={fileRef}
-            className="min-w-0 flex-1 text-xs text-zinc-400 file:mr-2 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1"
-            accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.zip,.doc,.docx,.xlsx"
-            disabled={uploading}
-            onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
-          />
-          <button
-            type="button"
-            className="h-9 w-9 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-lg leading-none flex items-center justify-center shrink-0"
-            onClick={() => setEmojiOpen((v) => !v)}
-            aria-label="Смайлы"
-          >
-            🙂
-          </button>
-        </div>
-        {emojiOpen ? (
-          <div className="flex flex-wrap gap-1.5">
-            {STICKERS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="text-lg leading-none px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-600"
-                onClick={() => {
-                  insertAtCursor(s);
-                  setEmojiOpen(false);
-                }}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        ) : null}
-        <div className="flex gap-2">
-          <textarea
-            ref={inputRef}
-            rows={1}
-            className="flex-1 rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm leading-5 resize-none overflow-hidden"
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                if (!uploading && body.trim()) void send(e as unknown as React.FormEvent);
-              }
-            }}
-            placeholder="Текст или подпись к файлу…"
-            disabled={uploading}
-          />
-          <button
-            type="submit"
-            disabled={uploading || !body.trim()}
-            className="rounded-lg bg-emerald-500 text-zinc-950 px-4 py-2 text-sm font-medium disabled:opacity-40"
-          >
-            {uploading ? "…" : "Отправить"}
-          </button>
-        </div>
+        <ChatComposer
+          value={body}
+          onChange={setBody}
+          onSend={() => {
+            // Use the same submit handler
+            void send({ preventDefault() {} } as unknown as React.FormEvent);
+          }}
+          disabled={uploading}
+          placeholder="Сообщение"
+          maxLines={7}
+          emojis={EMOJIS}
+          emojiButtonOnFileRow
+          file={{
+            accept: ".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.zip,.doc,.docx,.xlsx",
+            disabled: uploading,
+            onPick: (f) => void onPickFile(f),
+          }}
+        />
       </form>
       <BottomNav />
     </main>
