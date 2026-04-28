@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { MessageBubble } from "@/components/chat/MessageBubble";
@@ -141,8 +141,9 @@ export default function ChatPage() {
     };
   }, [cid, router]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // On open (or switching dialogs), jump to the latest messages once.
+    // We tie this to messages.length so it runs after the list is actually rendered.
     if (!ready || !Number.isFinite(cid)) return;
     if (didInitialScrollRef.current.cid !== cid) {
       didInitialScrollRef.current = { cid, done: false };
@@ -150,17 +151,21 @@ export default function ChatPage() {
     if (didInitialScrollRef.current.done) return;
     const box = scrollRef.current;
     if (!box) return;
-    if (!messagesRef.current.length) return;
+    if (messages.length < 1) return;
     didInitialScrollRef.current.done = true;
+    polling.atBottomRef.current = true;
+    // Double-rAF makes sure layout is settled (fonts/safe-area/etc.)
     requestAnimationFrame(() => {
-      try {
-        box.scrollTop = box.scrollHeight;
-      } catch {
-        /* ignore */
-      }
-      polling.tryMarkReadNow();
+      requestAnimationFrame(() => {
+        try {
+          box.scrollTop = box.scrollHeight;
+        } catch {
+          /* ignore */
+        }
+        polling.tryMarkReadNow();
+      });
     });
-  }, [ready, cid, polling]);
+  }, [ready, cid, messages.length, polling]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && typeof Notification !== "undefined") {

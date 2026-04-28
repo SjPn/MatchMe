@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { MessageBubble } from "@/components/chat/MessageBubble";
@@ -117,7 +117,7 @@ export default function GroupChatPage() {
     };
   }, [rid]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // On open (or switching rooms), jump to the latest messages once.
     if (!ready || !Number.isFinite(rid)) return;
     if (didInitialScrollRef.current.rid !== rid) {
@@ -126,17 +126,20 @@ export default function GroupChatPage() {
     if (didInitialScrollRef.current.done) return;
     const box = scrollRef.current;
     if (!box) return;
-    if (!messagesRef.current.length) return;
+    if (messages.length < 1) return;
     didInitialScrollRef.current.done = true;
+    polling.atBottomRef.current = true;
     requestAnimationFrame(() => {
-      try {
-        box.scrollTop = box.scrollHeight;
-      } catch {
-        /* ignore */
-      }
-      polling.tryMarkReadNow();
+      requestAnimationFrame(() => {
+        try {
+          box.scrollTop = box.scrollHeight;
+        } catch {
+          /* ignore */
+        }
+        polling.tryMarkReadNow();
+      });
     });
-  }, [ready, rid, polling]);
+  }, [ready, rid, messages.length, polling]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && typeof Notification !== "undefined") {
