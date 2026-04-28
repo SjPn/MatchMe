@@ -136,20 +136,34 @@ export default function GroupChatPage() {
       } catch {
         /* ignore */
       }
+      try {
+        box.scrollTop = box.scrollHeight + 100000;
+      } catch {
+        /* ignore */
+      }
       polling.tryMarkReadNow();
     };
 
     const t: number[] = [];
+    let iv: number | null = null;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         doScroll();
         t.push(window.setTimeout(doScroll, 0));
         t.push(window.setTimeout(doScroll, 180));
+        iv = window.setInterval(doScroll, 60);
+        t.push(
+          window.setTimeout(() => {
+            if (iv != null) window.clearInterval(iv);
+            iv = null;
+          }, 1100)
+        );
       });
     });
 
     return () => {
       for (const id of t) window.clearTimeout(id);
+      if (iv != null) window.clearInterval(iv);
     };
   }, [ready, rid, messages.length, polling]);
 
