@@ -154,17 +154,28 @@ export default function ChatPage() {
     if (messages.length < 1) return;
     didInitialScrollRef.current.done = true;
     polling.atBottomRef.current = true;
-    // Double-rAF makes sure layout is settled (fonts/safe-area/etc.)
+    // Make the initial jump robust to late layout changes (fonts, safe-area, etc.)
+    const doScroll = () => {
+      try {
+        box.scrollTop = box.scrollHeight;
+      } catch {
+        /* ignore */
+      }
+      polling.tryMarkReadNow();
+    };
+
+    const t: number[] = [];
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        try {
-          box.scrollTop = box.scrollHeight;
-        } catch {
-          /* ignore */
-        }
-        polling.tryMarkReadNow();
+        doScroll();
+        t.push(window.setTimeout(doScroll, 0));
+        t.push(window.setTimeout(doScroll, 180));
       });
     });
+
+    return () => {
+      for (const id of t) window.clearTimeout(id);
+    };
   }, [ready, cid, messages.length, polling]);
 
   useEffect(() => {

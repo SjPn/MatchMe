@@ -129,16 +129,27 @@ export default function GroupChatPage() {
     if (messages.length < 1) return;
     didInitialScrollRef.current.done = true;
     polling.atBottomRef.current = true;
+    const doScroll = () => {
+      try {
+        box.scrollTop = box.scrollHeight;
+      } catch {
+        /* ignore */
+      }
+      polling.tryMarkReadNow();
+    };
+
+    const t: number[] = [];
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        try {
-          box.scrollTop = box.scrollHeight;
-        } catch {
-          /* ignore */
-        }
-        polling.tryMarkReadNow();
+        doScroll();
+        t.push(window.setTimeout(doScroll, 0));
+        t.push(window.setTimeout(doScroll, 180));
       });
     });
+
+    return () => {
+      for (const id of t) window.clearTimeout(id);
+    };
   }, [ready, rid, messages.length, polling]);
 
   useEffect(() => {
