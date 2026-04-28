@@ -69,8 +69,30 @@ export default function ChatPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const typingIntervalRef = useRef<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [emojiOpen, setEmojiOpen] = useState(false);
 
   messagesRef.current = messages;
+
+  function insertAtCursor(text: string) {
+    const el = inputRef.current;
+    if (!el) {
+      setBody((b) => (b ? `${b}${text}` : text));
+      return;
+    }
+    const start = el.selectionStart ?? el.value.length;
+    const end = el.selectionEnd ?? el.value.length;
+    const next = `${body.slice(0, start)}${text}${body.slice(end)}`;
+    setBody(next);
+    const caret = start + text.length;
+    requestAnimationFrame(() => {
+      try {
+        el.focus();
+        el.setSelectionRange(caret, caret);
+      } catch {
+        /* ignore */
+      }
+    });
+  }
 
   function autosizeInput() {
     const el = inputRef.current;
@@ -280,6 +302,7 @@ export default function ChatPage() {
       setReplyTo(null);
       atBottomRef.current = true;
       hideKeyboard();
+      setEmojiOpen(false);
       if (inputRef.current) {
         inputRef.current.style.height = "auto";
         inputRef.current.style.overflowY = "hidden";
@@ -315,6 +338,7 @@ export default function ChatPage() {
       setReplyTo(null);
       atBottomRef.current = true;
       hideKeyboard();
+      setEmojiOpen(false);
       if (inputRef.current) {
         inputRef.current.style.height = "auto";
         inputRef.current.style.overflowY = "hidden";
@@ -566,17 +590,32 @@ export default function ChatPage() {
             </button>
           </div>
         )}
-        <div className="flex flex-wrap gap-1.5">
-          {STICKERS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              className="text-lg leading-none px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-600"
-              onClick={() => setBody((b) => (b ? `${b}${s}` : s))}
-            >
-              {s}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="h-9 w-9 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-lg leading-none flex items-center justify-center"
+            onClick={() => setEmojiOpen((v) => !v)}
+            aria-label="Смайлы"
+          >
+            🙂
+          </button>
+          {emojiOpen ? (
+            <div className="flex flex-wrap gap-1.5">
+              {STICKERS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className="text-lg leading-none px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-600"
+                  onClick={() => {
+                    insertAtCursor(s);
+                    setEmojiOpen(false);
+                  }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div className="flex gap-2">
           <input
@@ -599,13 +638,6 @@ export default function ChatPage() {
               if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
                 e.preventDefault();
                 if (!uploading && body.trim()) void send(e as unknown as React.FormEvent);
-                return;
-              }
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                if (!uploading && body.trim()) {
-                  void send(e as unknown as React.FormEvent);
-                }
               }
             }}
             placeholder="Текст или подпись к файлу…"
@@ -619,12 +651,6 @@ export default function ChatPage() {
             {uploading ? "…" : "Отправить"}
           </button>
         </div>
-        <p className="text-[10px] text-zinc-600">
-          Файл до ~10 МБ: PDF, изображения, документы Office, zip, txt.
-        </p>
-        <p className="text-[10px] text-zinc-600">
-          Enter — отправить · Shift+Enter — новая строка · Ctrl/⌘+Enter — отправить
-        </p>
       </form>
       <BottomNav />
     </main>
