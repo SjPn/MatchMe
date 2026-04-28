@@ -61,6 +61,7 @@ export default function GroupChatPage() {
   const [reportFor, setReportFor] = useState<number | null>(null);
   const [reportReason, setReportReason] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
@@ -131,7 +132,7 @@ export default function GroupChatPage() {
     polling.atBottomRef.current = true;
     const doScroll = () => {
       try {
-        box.scrollTop = box.scrollHeight;
+        bottomRef.current?.scrollIntoView({ block: "end" });
       } catch {
         /* ignore */
       }
@@ -356,6 +357,7 @@ export default function GroupChatPage() {
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        style={{ overflowAnchor: "none" }}
         onPointerDown={() => {
           try {
             (document.activeElement as HTMLElement | null)?.blur?.();
@@ -392,6 +394,7 @@ export default function GroupChatPage() {
         {!messages.length && ready && (
           <p className="text-zinc-500 text-sm">Пока тихо — можно начать с вопроса дня выше.</p>
         )}
+        <div ref={bottomRef} style={{ overflowAnchor: "none" }} />
       </div>
 
       {reportFor !== null && (

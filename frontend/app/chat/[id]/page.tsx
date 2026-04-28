@@ -63,6 +63,7 @@ export default function ChatPage() {
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
   const typingIntervalRef = useRef<number | null>(null);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
@@ -157,7 +158,8 @@ export default function ChatPage() {
     // Make the initial jump robust to late layout changes (fonts, safe-area, etc.)
     const doScroll = () => {
       try {
-        box.scrollTop = box.scrollHeight;
+        // anchor-based scroll is more robust than scrollTop=scrollHeight with scroll anchoring
+        bottomRef.current?.scrollIntoView({ block: "end" });
       } catch {
         /* ignore */
       }
@@ -403,6 +405,7 @@ export default function ChatPage() {
       <div
         ref={scrollRef}
         className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        style={{ overflowAnchor: "none" }}
         onPointerDown={() => {
           // composer handles keyboard too, but tapping the list should also hide it
           try {
@@ -441,6 +444,7 @@ export default function ChatPage() {
         {!messages.length && ready && (
           <p className="text-zinc-500 text-sm">Пока пусто — напиши первым.</p>
         )}
+        <div ref={bottomRef} style={{ overflowAnchor: "none" }} />
       </div>
       {infoMsg && <p className="px-4 text-emerald-400/90 text-sm shrink-0">{infoMsg}</p>}
       {error && <p className="px-4 text-red-400 text-sm shrink-0">{error}</p>}
