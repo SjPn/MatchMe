@@ -573,34 +573,24 @@ export default function GroupChatPage() {
             </button>
           </div>
         )}
+        {emojiOpen ? (
+          <div className="flex flex-wrap gap-1.5">
+            {STICKERS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className="text-lg leading-none px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-600"
+                onClick={() => {
+                  insertAtCursor(s);
+                  setEmojiOpen(false);
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="h-9 w-9 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-lg leading-none flex items-center justify-center"
-            onClick={() => setEmojiOpen((v) => !v)}
-            aria-label="Смайлы"
-          >
-            🙂
-          </button>
-          {emojiOpen ? (
-            <div className="flex flex-wrap gap-1.5">
-              {STICKERS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className="text-lg leading-none px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-600"
-                  onClick={() => {
-                    insertAtCursor(s);
-                    setEmojiOpen(false);
-                  }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
-        <div className="flex gap-2">
           <textarea
             ref={inputRef}
             rows={1}
@@ -615,6 +605,14 @@ export default function GroupChatPage() {
             }}
             placeholder="Сообщение в группу…"
           />
+          <button
+            type="button"
+            className="h-9 w-9 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-lg leading-none flex items-center justify-center shrink-0"
+            onClick={() => setEmojiOpen((v) => !v)}
+            aria-label="Смайлы"
+          >
+            🙂
+          </button>
           <button
             type="submit"
             disabled={!body.trim()}

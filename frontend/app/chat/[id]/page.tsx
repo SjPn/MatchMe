@@ -591,42 +591,40 @@ export default function ChatPage() {
           </div>
         )}
         <div className="flex items-center gap-2">
+          <input
+            type="file"
+            ref={fileRef}
+            className="min-w-0 flex-1 text-xs text-zinc-400 file:mr-2 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1"
+            accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.zip,.doc,.docx,.xlsx"
+            disabled={uploading}
+            onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
+          />
           <button
             type="button"
-            className="h-9 w-9 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-lg leading-none flex items-center justify-center"
+            className="h-9 w-9 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-lg leading-none flex items-center justify-center shrink-0"
             onClick={() => setEmojiOpen((v) => !v)}
             aria-label="Смайлы"
           >
             🙂
           </button>
-          {emojiOpen ? (
-            <div className="flex flex-wrap gap-1.5">
-              {STICKERS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  className="text-lg leading-none px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-600"
-                  onClick={() => {
-                    insertAtCursor(s);
-                    setEmojiOpen(false);
-                  }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          ) : null}
         </div>
-        <div className="flex gap-2">
-          <input
-            type="file"
-            ref={fileRef}
-            className="text-xs text-zinc-400 file:mr-2 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1"
-            accept=".pdf,.png,.jpg,.jpeg,.gif,.webp,.txt,.zip,.doc,.docx,.xlsx"
-            disabled={uploading}
-            onChange={(e) => void onPickFile(e.target.files?.[0] ?? null)}
-          />
-        </div>
+        {emojiOpen ? (
+          <div className="flex flex-wrap gap-1.5">
+            {STICKERS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className="text-lg leading-none px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-600"
+                onClick={() => {
+                  insertAtCursor(s);
+                  setEmojiOpen(false);
+                }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        ) : null}
         <div className="flex gap-2">
           <textarea
             ref={inputRef}
