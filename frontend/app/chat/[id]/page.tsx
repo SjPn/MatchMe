@@ -66,6 +66,7 @@ export default function ChatPage() {
   const typingIntervalRef = useRef<number | null>(null);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
+  const didInitialScrollRef = useRef<{ cid: number; done: boolean }>({ cid: -1, done: false });
 
   const tryMarkRead = useCallback(() => {
     if (!ready || !Number.isFinite(cid)) return;
@@ -139,6 +140,27 @@ export default function ChatPage() {
       cancelled = true;
     };
   }, [cid, router]);
+
+  useEffect(() => {
+    // On open (or switching dialogs), jump to the latest messages once.
+    if (!ready || !Number.isFinite(cid)) return;
+    if (didInitialScrollRef.current.cid !== cid) {
+      didInitialScrollRef.current = { cid, done: false };
+    }
+    if (didInitialScrollRef.current.done) return;
+    const box = scrollRef.current;
+    if (!box) return;
+    if (!messagesRef.current.length) return;
+    didInitialScrollRef.current.done = true;
+    requestAnimationFrame(() => {
+      try {
+        box.scrollTop = box.scrollHeight;
+      } catch {
+        /* ignore */
+      }
+      polling.tryMarkReadNow();
+    });
+  }, [ready, cid, polling]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && typeof Notification !== "undefined") {

@@ -64,6 +64,7 @@ export default function GroupChatPage() {
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
+  const didInitialScrollRef = useRef<{ rid: number; done: boolean }>({ rid: -1, done: false });
 
   const polling = useChatPolling<Message>({
     enabled: ready && Number.isFinite(rid),
@@ -115,6 +116,27 @@ export default function GroupChatPage() {
       cancelled = true;
     };
   }, [rid]);
+
+  useEffect(() => {
+    // On open (or switching rooms), jump to the latest messages once.
+    if (!ready || !Number.isFinite(rid)) return;
+    if (didInitialScrollRef.current.rid !== rid) {
+      didInitialScrollRef.current = { rid, done: false };
+    }
+    if (didInitialScrollRef.current.done) return;
+    const box = scrollRef.current;
+    if (!box) return;
+    if (!messagesRef.current.length) return;
+    didInitialScrollRef.current.done = true;
+    requestAnimationFrame(() => {
+      try {
+        box.scrollTop = box.scrollHeight;
+      } catch {
+        /* ignore */
+      }
+      polling.tryMarkReadNow();
+    });
+  }, [ready, rid, polling]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && typeof Notification !== "undefined") {
