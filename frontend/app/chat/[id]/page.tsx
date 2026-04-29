@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { BottomNav } from "@/components/BottomNav";
 import { ChatComposer } from "@/components/chat/ChatComposer";
 import { MessageBubble } from "@/components/chat/MessageBubble";
@@ -67,7 +67,6 @@ export default function ChatPage() {
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
   const didInitialScrollRef = useRef<{ cid: number; done: boolean }>({ cid: -1, done: false });
-  const messagesNewestFirst = useMemo(() => [...messages].reverse(), [messages]);
 
   const tryMarkRead = useCallback(() => {
     if (!ready || !Number.isFinite(cid)) return;
@@ -154,11 +153,10 @@ export default function ChatPage() {
     if (!box) return;
     if (messages.length < 1) return;
     didInitialScrollRef.current.done = true;
-    // With flex-col-reverse list, "latest messages" live at scrollTop=0.
     polling.atBottomRef.current = true;
     const doScroll = () => {
       try {
-        box.scrollTop = 0;
+        box.scrollTop = box.scrollHeight + 100000;
       } catch {
         /* ignore */
       }
@@ -413,7 +411,8 @@ export default function ChatPage() {
       )}
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto px-4 py-4 flex flex-col-reverse gap-3"
+        key={cid}
+        className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
         style={{ overflowAnchor: "none" }}
         onPointerDown={() => {
           // composer handles keyboard too, but tapping the list should also hide it
@@ -427,7 +426,7 @@ export default function ChatPage() {
           polling.onScroll();
         }}
       >
-        {messagesNewestFirst.map((m) => {
+        {messages.map((m) => {
           const mine = meId !== null && m.sender_id === meId;
           const rp = m.reply_to;
           return (
