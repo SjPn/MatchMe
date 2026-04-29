@@ -1,36 +1,50 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MatchMe — frontend (Next.js)
 
-## Getting Started
+Клиентское приложение монорепозитория **MatchMe**. Не используй этот файл как общий гайд по продукту — см. **`../README.md`** и **`../AGENTS.md`**.
 
-First, run the development server:
+## Стек
 
-```bash
+- **Next.js 14** (App Router), **React**, **Tailwind CSS**
+- Шрифт **Geist** (`app/fonts/`)
+- Запросы к API: через **`lib/api.ts`** (JWT в `localStorage`, при необходимости прокси **`/api/*`** → бэкенд из `next.config.mjs`)
+
+## Тема и стили
+
+- **Светлая** палитра: белый фон, текст `zinc-900` / `zinc-600`.
+- Акцент — **синий** (**`sky-*`** в классах), токены в **`app/globals.css`** (`--mm-accent`, `--mm-accent-dim`, …).
+- Переиспользуемые классы префикса **`mm-*`** (`mm-page`, `mm-card`, `mm-btn-primary`, …) задаются в **`app/globals.css`**.
+- Ширина колонки: **`max-w-shell`** / на широких экранах **`lg:max-w-shell-wide`** — см. **`tailwind.config.ts`**.
+
+## Запуск
+
+```powershell
+cd frontend
+copy .env.local.example .env.local
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Открыть [http://localhost:3000](http://localhost:3000). API по умолчанию — через прокси на тот же хост или **`NEXT_PUBLIC_API_URL`** (см. `.env.local.example`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Сборка
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```powershell
+npm run build
+npm run start
+```
 
-## Learn More
+На **Render** и других CI важно проходить **`npm run build`** (проверка TypeScript и ESLint в процессе Next).
 
-To learn more about Next.js, take a look at the following resources:
+## Важные пути в коде
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Путь | Назначение |
+|------|------------|
+| `app/layout.tsx` | Корневой layout, **`GlobalChatAlerts`** |
+| `app/globals.css` | Tailwind + классы **`mm-*`**, фон body |
+| `lib/api.ts` | HTTP-обёртка, **`avatarPublicSrc`**, ретраи |
+| `lib/chatClient.ts` | Скролл «у низа», звук, Notification |
+| `lib/hooks/useChatPolling.ts` | Поллинг сообщений в чатах |
+| `components/BottomNav.tsx` | Нижнее меню и бейдж непрочитанных |
+| `components/GlobalChatAlerts.tsx` | Уведомления при росте unread вне чата |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Подробнее о фичах и бэкенде — **`../README.md`**.
