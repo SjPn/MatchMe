@@ -16,7 +16,7 @@ export function playSoftMessagePing(): void {
     if (!Ctx) return;
     const ctx = new Ctx();
 
-    function blip(freq: number, startSec: number, peak: number) {
+    const blip = (freq: number, startSec: number, peak: number) => {
       const o = ctx.createOscillator();
       const g = ctx.createGain();
       o.type = "sine";
@@ -29,7 +29,7 @@ export function playSoftMessagePing(): void {
       g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.11);
       o.start(t0);
       o.stop(t0 + 0.12);
-    }
+    };
 
     blip(784, 0, 0.085);
     blip(1047, 0.13, 0.065);
