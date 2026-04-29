@@ -78,14 +78,18 @@ export default function GroupChatPage() {
     merge: mergeById,
     setMessages,
     fetchNewer: (afterId) => api<Message[]>(`/group-rooms/${rid}/messages?after_id=${afterId}`),
-    onIncoming: ({ newer }) => {
+    onIncoming: ({ newer, wasNearBottom }) => {
       const me = meId;
       const fromOthers = me != null && newer.some((m) => m.sender_id !== me);
-      if (fromOthers && typeof document !== "undefined" && document.hidden) {
-        playSoftMessagePing();
+      if (!fromOthers || typeof document === "undefined") return;
+      const tabHidden = document.hidden;
+      const scrolledUp = !wasNearBottom;
+      if (!tabHidden && !scrolledUp) return;
+      playSoftMessagePing();
+      if (tabHidden) {
         const last = newer[newer.length - 1];
         const snippet = (last.body || "").slice(0, 120) || "Сообщение в группе";
-        showChatNotificationIfAllowed(room?.title || "Группа", snippet);
+        showChatNotificationIfAllowed(room?.title || "Группа", snippet, { tag: `group-${rid}` });
       }
     },
     markRead: (lastMessageId) => {

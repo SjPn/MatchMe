@@ -97,14 +97,18 @@ export default function ChatPage() {
         setPeerTyping((typingRes.typing_user_ids?.length ?? 0) > 0);
       }
     },
-    onIncoming: ({ newer }) => {
+    onIncoming: ({ newer, wasNearBottom }) => {
       const me = meId;
       const fromPeer = me != null && newer.some((m) => m.sender_id !== me);
-      if (fromPeer && typeof document !== "undefined" && document.hidden) {
-        playSoftMessagePing();
+      if (!fromPeer || typeof document === "undefined") return;
+      const tabHidden = document.hidden;
+      const scrolledUp = !wasNearBottom;
+      if (!tabHidden && !scrolledUp) return;
+      playSoftMessagePing();
+      if (tabHidden) {
         const last = newer[newer.length - 1];
         const snippet = (last.body || last.attachment?.original_name || "Сообщение").slice(0, 120);
-        showChatNotificationIfAllowed(peerName || "Чат", snippet);
+        showChatNotificationIfAllowed(peerName || "Чат", snippet, { tag: `direct-${cid}` });
       }
     },
     markRead: (lastMessageId) => {
