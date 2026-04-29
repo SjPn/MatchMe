@@ -63,6 +63,7 @@ export default function ChatPage() {
   const [infoMsg, setInfoMsg] = useState<string | null>(null);
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingIntervalRef = useRef<number | null>(null);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
@@ -111,6 +112,9 @@ export default function ChatPage() {
     },
   });
 
+  const tryMarkReadNowRef = useRef(polling.tryMarkReadNow);
+  tryMarkReadNowRef.current = polling.tryMarkReadNow;
+
   useEffect(() => {
     if (!getToken()) {
       router.replace("/login");
@@ -156,11 +160,12 @@ export default function ChatPage() {
     polling.atBottomRef.current = true;
     const doScroll = () => {
       try {
-        box.scrollTop = box.scrollHeight + 100000;
+        box.scrollTop = box.scrollHeight;
+        messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "auto" });
       } catch {
         /* ignore */
       }
-      polling.tryMarkReadNow();
+      tryMarkReadNowRef.current();
     };
 
     const t: number[] = [];
@@ -185,7 +190,10 @@ export default function ChatPage() {
       for (const id of t) window.clearTimeout(id);
       if (iv != null) window.clearInterval(iv);
     };
-  }, [ready, cid, messages.length, polling]);
+    // Intentionally omit `polling` — new object each render would rerun this effect endlessly.
+    // tryMarkReadNowRef always holds the latest handler.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stable scroll-on-open via cid/messages.length only
+  }, [ready, cid, messages.length]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && typeof Notification !== "undefined") {
@@ -412,7 +420,7 @@ export default function ChatPage() {
       <div
         ref={scrollRef}
         key={cid}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3"
         style={{ overflowAnchor: "none" }}
         onPointerDown={() => {
           // composer handles keyboard too, but tapping the list should also hide it
@@ -452,6 +460,7 @@ export default function ChatPage() {
         {!messages.length && ready && (
           <p className="text-zinc-500 text-sm">Пока пусто — напиши первым.</p>
         )}
+        <div ref={messagesEndRef} className="h-px w-full shrink-0" aria-hidden />
       </div>
       {infoMsg && <p className="px-4 text-emerald-400/90 text-sm shrink-0">{infoMsg}</p>}
       {error && <p className="px-4 text-red-400 text-sm shrink-0">{error}</p>}

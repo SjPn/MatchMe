@@ -61,6 +61,7 @@ export default function GroupChatPage() {
   const [reportFor, setReportFor] = useState<number | null>(null);
   const [reportReason, setReportReason] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showNotifyPrompt, setShowNotifyPrompt] = useState(false);
   const messagesRef = useRef<Message[]>([]);
   messagesRef.current = messages;
@@ -91,6 +92,9 @@ export default function GroupChatPage() {
       void api(`/group-rooms/${rid}/read?last_message_id=${lastMessageId}`, { method: "POST" });
     },
   });
+
+  const tryMarkReadNowRef = useRef(polling.tryMarkReadNow);
+  tryMarkReadNowRef.current = polling.tryMarkReadNow;
 
   useEffect(() => {
     if (!Number.isFinite(rid)) return;
@@ -131,11 +135,12 @@ export default function GroupChatPage() {
     polling.atBottomRef.current = true;
     const doScroll = () => {
       try {
-        box.scrollTop = box.scrollHeight + 100000;
+        box.scrollTop = box.scrollHeight;
+        messagesEndRef.current?.scrollIntoView({ block: "end", behavior: "auto" });
       } catch {
         /* ignore */
       }
-      polling.tryMarkReadNow();
+      tryMarkReadNowRef.current();
     };
 
     const t: number[] = [];
@@ -159,7 +164,8 @@ export default function GroupChatPage() {
       for (const id of t) window.clearTimeout(id);
       if (iv != null) window.clearInterval(iv);
     };
-  }, [ready, rid, messages.length, polling]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- scroll-on-open only; polling identity unstable
+  }, [ready, rid, messages.length]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && typeof Notification !== "undefined") {
@@ -365,7 +371,7 @@ export default function GroupChatPage() {
       <div
         ref={scrollRef}
         key={rid}
-        className="flex-1 overflow-y-auto px-4 py-4 space-y-3"
+        className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-3"
         style={{ overflowAnchor: "none" }}
         onPointerDown={() => {
           try {
@@ -403,6 +409,7 @@ export default function GroupChatPage() {
         {!messages.length && ready && (
           <p className="text-zinc-500 text-sm">Пока тихо — можно начать с вопроса дня выше.</p>
         )}
+        <div ref={messagesEndRef} className="h-px w-full shrink-0" aria-hidden />
       </div>
 
       {reportFor !== null && (
