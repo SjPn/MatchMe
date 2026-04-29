@@ -46,18 +46,18 @@ export function ThreadActions(props: {
 
   return (
     <div className="mt-3 flex items-center justify-between text-xs text-zinc-500">
-      <button type="button" className="px-2 py-1 rounded-lg hover:bg-zinc-800/60" onClick={props.onReply}>
+      <button type="button" className="px-2 py-1 rounded-lg hover:bg-zinc-100" onClick={props.onReply}>
         💬 Ответить
       </button>
-      <button type="button" className="px-2 py-1 rounded-lg hover:bg-zinc-800/60" onClick={() => void doRepost()}>
+      <button type="button" className="px-2 py-1 rounded-lg hover:bg-zinc-100" onClick={() => void doRepost()}>
         ↻ Репост
       </button>
-      <button type="button" className="px-2 py-1 rounded-lg hover:bg-zinc-800/60" onClick={props.onQuote}>
+      <button type="button" className="px-2 py-1 rounded-lg hover:bg-zinc-100" onClick={props.onQuote}>
         ❝ Цитата
       </button>
       <button
         type="button"
-        className={`px-2 py-1 rounded-lg hover:bg-zinc-800/60 ${post.liked_by_me ? "text-emerald-300" : ""}`}
+        className={`px-2 py-1 rounded-lg hover:bg-zinc-100 ${post.liked_by_me ? "text-sky-600" : ""}`}
         onClick={() => void toggleLike()}
         aria-pressed={post.liked_by_me}
       >

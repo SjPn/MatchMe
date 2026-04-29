@@ -131,7 +131,7 @@ export default function ConversationsPage() {
 
   return (
     <main className="mm-page scrollbar-thin">
-      <Link href="/feed" className="text-sm text-zinc-500 hover:text-emerald-400/90 transition-colors">
+      <Link href="/feed" className="text-sm text-zinc-500 hover:text-sky-700 transition-colors">
         ← Лента
       </Link>
       <h1 className="mm-h2 mt-6">Диалоги</h1>
@@ -141,7 +141,7 @@ export default function ConversationsPage() {
       </p>
 
       <div className="mt-6 mm-panel space-y-3">
-        <p className="text-sm font-medium text-zinc-200">Групповой чат</p>
+        <p className="text-sm font-medium text-zinc-900">Групповой чат</p>
         <p className="text-xs text-zinc-500 leading-relaxed">
           Подбор по среднему и максимуму расхождения по осям; комната создаётся, когда набирается
           достаточно близких по ответам людей.
@@ -154,7 +154,7 @@ export default function ConversationsPage() {
         >
           {joining ? "…" : "Найти или войти в группу"}
         </button>
-        {joinMsg ? <p className="text-xs text-amber-300/90 whitespace-pre-wrap">{joinMsg}</p> : null}
+        {joinMsg ? <p className="text-xs text-amber-800/95 whitespace-pre-wrap">{joinMsg}</p> : null}
       </div>
 
       {error ? <p className="mt-4 mm-error">{error}</p> : null}
@@ -165,10 +165,10 @@ export default function ConversationsPage() {
               <li key={`g-${r.group_room_id}`}>
                 <Link
                   href={`/group-chat/${r.group_room_id}`}
-                  className="flex justify-between gap-3 mm-card py-4 border-emerald-500/20 bg-gradient-to-br from-emerald-950/30 to-zinc-900/40 hover:border-emerald-500/35"
+                  className="flex justify-between gap-3 mm-card py-4 border-sky-200 bg-gradient-to-br from-sky-50 to-white hover:border-sky-300"
                 >
                   <span>
-                    <span className="text-[10px] text-emerald-500 uppercase tracking-wide block">
+                    <span className="text-[10px] text-sky-500 uppercase tracking-wide block">
                       Группа · {r.member_count} чел.
                     </span>
                     <span className="font-medium">{r.title}</span>
@@ -192,7 +192,7 @@ export default function ConversationsPage() {
                 <span className="font-medium">
                   <Link
                     href={`/users/${r.other_user_id}`}
-                    className="hover:text-emerald-300"
+                    className="hover:text-sky-700"
                     onClick={(e) => e.stopPropagation()}
                   >
                     {r.other_display_name || `Пользователь #${r.other_user_id}`}

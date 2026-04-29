@@ -144,7 +144,7 @@ export default function SummaryPage() {
     return (
       <main className="min-h-screen flex items-center justify-center text-zinc-500">
         <span className="inline-flex items-center gap-2 text-sm">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400" aria-hidden />
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-sky-500/30 border-t-sky-400" aria-hidden />
           Считаем профиль…
         </span>
       </main>
@@ -156,7 +156,7 @@ export default function SummaryPage() {
       <div className="flex justify-end">
         <button
           type="button"
-          className="text-sm text-zinc-500 hover:text-zinc-300 underline-offset-2 hover:underline"
+          className="text-sm text-zinc-500 hover:text-sky-700 underline-offset-2 hover:underline"
           onClick={() => {
             setToken(null);
             router.replace("/login");
@@ -165,7 +165,7 @@ export default function SummaryPage() {
           Выйти из аккаунта
         </button>
       </div>
-      <p className="text-emerald-400/95 text-sm font-medium mt-2">Твой профиль в MatchMe</p>
+      <p className="text-sky-700 text-sm font-medium mt-2">Твой профиль в MatchMe</p>
       <h1 className="mm-h1 mt-3">Привет, {data.display_name}</h1>
       <p className="mm-lead mt-2 max-w-xl">
         Ниже — срез по осям (0–1) на основе ответов. Это не клиническая диагностика, а ориентир для совпадений.
@@ -177,8 +177,8 @@ export default function SummaryPage() {
       </div>
 
       {me ? (
-        <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3">
-          <p className="text-sm text-zinc-300">Доверие к профилю</p>
+        <div className="mt-4 rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
+          <p className="text-sm text-zinc-800">Доверие к профилю</p>
           <p className="text-xs text-zinc-500 mt-1">
             Загрузите селфи (JPG/PNG/WebP, до 5 МБ) — в MVP после загрузки ставится отметка для других
             пользователей.
@@ -197,7 +197,7 @@ export default function SummaryPage() {
               />
               <label
                 htmlFor="summary-verify-photo"
-                className="mt-2 inline-block text-xs text-emerald-400 cursor-pointer underline-offset-2 hover:underline"
+                className="mt-2 inline-block text-xs text-sky-400 cursor-pointer underline-offset-2 hover:underline"
               >
                 {verifyBusy ? "Загрузка…" : "Выбрать фото"}
               </label>
@@ -207,8 +207,8 @@ export default function SummaryPage() {
       ) : null}
 
       {me ? (
-        <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900/30 px-4 py-3">
-          <p className="text-sm text-zinc-300">Аватар</p>
+        <div className="mt-4 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+          <p className="text-sm text-zinc-800">Аватар</p>
           <p className="text-xs text-zinc-500 mt-1">
             Это картинка, которая показывается в ленте и на вашей странице. Не путать с селфи для отметки доверия.
           </p>
@@ -218,7 +218,7 @@ export default function SummaryPage() {
               <img
                 src={avatarPublicSrc(me.avatar_url)}
                 alt="Ваш аватар"
-                className="h-14 w-14 rounded-full object-cover border border-emerald-500/20"
+                className="h-14 w-14 rounded-full object-cover border border-sky-500/20"
               />
             ) : (
               <span className="mm-badge">нет аватара</span>
@@ -233,14 +233,14 @@ export default function SummaryPage() {
             />
             <label
               htmlFor="summary-avatar-file"
-              className="text-xs text-emerald-400 cursor-pointer underline-offset-2 hover:underline"
+              className="text-xs text-sky-400 cursor-pointer underline-offset-2 hover:underline"
             >
               {avatarBusy ? "Загрузка…" : "Сменить аватар"}
             </label>
             {me.avatar_url ? (
               <button
                 type="button"
-                className="text-xs text-zinc-500 hover:text-zinc-300 underline-offset-2 hover:underline"
+                className="text-xs text-zinc-500 hover:text-sky-700 underline-offset-2 hover:underline"
                 disabled={avatarBusy}
                 onClick={async () => {
                   setAvatarBusy(true);
@@ -267,12 +267,12 @@ export default function SummaryPage() {
       {(data.badges ?? []).length ? (
         <div className="mt-6 flex flex-wrap gap-2">
           {(data.badges ?? []).includes("transparent_axes") ? (
-            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-300">
+            <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-xs text-sky-300">
               Прозрачный профиль по осям
             </span>
           ) : null}
           {(data.badges ?? []).includes("about_me") ? (
-            <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-xs text-sky-200">
+            <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-3 py-1 text-xs text-sky-800">
               Есть «о себе»
             </span>
           ) : null}
@@ -284,7 +284,7 @@ export default function SummaryPage() {
           <h2 id="mind-lines-heading" className="text-xs uppercase tracking-wide text-zinc-500 mb-2">
             Как я думаю
           </h2>
-          <ul className="space-y-1 text-sm text-zinc-300">
+          <ul className="space-y-1 text-sm text-zinc-700">
             {(data.mind_lines ?? []).map((line) => (
               <li key={line}>{line}</li>
             ))}
@@ -303,14 +303,14 @@ export default function SummaryPage() {
           </h2>
           {(data.onboarding_plus_total ?? 0) > 0 &&
           (data.onboarding_plus_answered ?? 0) < (data.onboarding_plus_total ?? 0) ? (
-            <div className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 px-3 py-3 space-y-2">
+            <div className="rounded-lg border border-sky-500/25 bg-sky-500/5 px-3 py-3 space-y-2">
               <p className="text-xs text-zinc-400 leading-relaxed">
                 Доступен второй блок из 10 вопросов — он уточнит оси профиля (справедливость, автономия,
                 эмоции vs логика и др.).
               </p>
               <Link
                 href="/test?pack=onboarding_plus"
-                className="inline-flex items-center justify-center rounded-lg bg-emerald-500 text-zinc-950 text-sm font-medium px-4 py-2.5 w-full sm:w-auto"
+                className="inline-flex items-center justify-center rounded-lg bg-sky-400 text-white text-sm font-medium px-4 py-2.5 w-full sm:w-auto hover:bg-sky-500"
               >
                 Продолжить опрос
               </Link>
@@ -322,13 +322,13 @@ export default function SummaryPage() {
               Дополнительный блок из 10 вопросов пройден — оси профиля обновлены с учётом этих ответов.
             </p>
           ) : null}
-          <div className="rounded-lg border border-zinc-800 bg-zinc-950/20 px-3 py-2">
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
             <p className="text-xs text-zinc-400">
               Android-приложение:{" "}
               <a
                 href="/downloads/MatchMe.apk"
                 download
-                className="text-emerald-400 underline underline-offset-2 hover:text-emerald-300"
+                className="text-sky-400 underline underline-offset-2 hover:text-sky-300"
               >
                 скачать APK
               </a>
@@ -387,15 +387,15 @@ export default function SummaryPage() {
                   <h3 className="text-sm font-medium text-zinc-200">{a.name}</h3>
                   <p className="text-xs text-zinc-500 mt-0.5">{a.lean}</p>
                 </div>
-                <span className="text-emerald-400 font-mono text-xs shrink-0">{pct}%</span>
+                <span className="text-sky-400 font-mono text-xs shrink-0">{pct}%</span>
               </div>
               <div className="relative h-2 rounded-full bg-zinc-800 overflow-hidden" aria-hidden>
                 <div
-                  className="absolute inset-y-0 left-0 bg-emerald-500/35"
+                  className="absolute inset-y-0 left-0 bg-sky-500/35"
                   style={{ width: `${pct}%` }}
                 />
                 <div
-                  className="absolute -top-1 h-4 w-1.5 rounded bg-emerald-400"
+                  className="absolute -top-1 h-4 w-1.5 rounded bg-sky-400"
                   style={{ left: `calc(${pct}% - 3px)` }}
                 />
               </div>
@@ -409,7 +409,7 @@ export default function SummaryPage() {
       </ul>
       <p className="mt-6 text-xs text-zinc-500">
         Заполненность онбординга:{" "}
-        <span className="text-zinc-300 font-medium text-sm">{data.completion_percent}%</span>
+        <span className="text-zinc-700 font-medium text-sm">{data.completion_percent}%</span>
       </p>
       <Link href="/feed" className="mm-btn-primary mt-10 block w-full text-center py-3.5">
         Показать людей, похожих на меня

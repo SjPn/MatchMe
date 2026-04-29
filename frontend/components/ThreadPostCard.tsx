@@ -61,7 +61,7 @@ export function ThreadPostCard(props: {
             {post.author.id ? (
               <Link
                 href={`/users/${post.author.id}`}
-                className="text-zinc-300 font-medium hover:text-emerald-300"
+                className="text-zinc-800 font-medium hover:text-sky-700"
                 onClick={(e) => {
                   // prevent parent post link navigation when author is clicked
                   e.stopPropagation();
@@ -70,7 +70,7 @@ export function ThreadPostCard(props: {
                 {author}
               </Link>
             ) : (
-              <span className="text-zinc-300 font-medium">{author}</span>
+              <span className="text-zinc-800 font-medium">{author}</span>
             )}{" "}
             · {timeAgo(post.created_at)}
           </p>
@@ -79,12 +79,12 @@ export function ThreadPostCard(props: {
               {post.kind === "repost" ? "Репост" : "Цитата"}
             </p>
           ) : null}
-          <p className={`mt-2 text-sm text-zinc-200 leading-relaxed ${compact ? "line-clamp-4" : "line-clamp-6"}`}>
+          <p className={`mt-2 text-sm text-zinc-800 leading-relaxed ${compact ? "line-clamp-4" : "line-clamp-6"}`}>
             {post.kind === "repost" ? "" : snippet}
           </p>
           {post.quote_preview ? (
-            <div className="mt-3 rounded-2xl border border-zinc-800/90 bg-black/15 px-3 py-2">
-              <p className="text-xs text-zinc-400 line-clamp-3">
+            <div className="mt-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2">
+              <p className="text-xs text-zinc-600 line-clamp-3">
                 <span className="text-zinc-500">↳ </span>
                 {post.quote_preview.body?.trim() ? post.quote_preview.body.trim() : "Пост"}
               </p>

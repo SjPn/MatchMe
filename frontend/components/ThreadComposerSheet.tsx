@@ -122,17 +122,17 @@ export function ThreadComposerSheet(props: {
     <div className="fixed inset-0 z-[60]">
       <button
         type="button"
-        className="absolute inset-0 bg-black/70"
+        className="absolute inset-0 bg-zinc-900/35"
         onClick={() => !busy && onClose()}
         aria-label="Закрыть"
       />
       <div className="absolute inset-x-0 bottom-0 mx-auto max-w-shell lg:max-w-shell-wide px-4 sm:px-6 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="rounded-3xl border border-zinc-800/90 bg-zinc-950/92 backdrop-blur-xl shadow-mm-card overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.06]">
-            <p className="text-sm font-semibold text-zinc-100">{title}</p>
+        <div className="rounded-3xl border border-zinc-200 bg-white shadow-mm-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100">
+            <p className="text-sm font-semibold text-zinc-900">{title}</p>
             <button
               type="button"
-              className="text-zinc-500 hover:text-zinc-300 px-2 py-1 rounded-lg"
+              className="text-zinc-500 hover:text-zinc-800 px-2 py-1 rounded-lg"
               onClick={() => !busy && onClose()}
               aria-label="Закрыть"
             >
@@ -142,9 +142,9 @@ export function ThreadComposerSheet(props: {
 
           {quoteStrip ? (
             <div className="px-4 pt-3">
-              <div className="rounded-2xl border border-zinc-700/80 bg-black/25 px-3 py-2 text-xs text-zinc-400">
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600">
                 <span className="text-zinc-500">{mode.kind === "quote" ? "Цитата: " : "В ответ на: "}</span>
-                <span className="text-zinc-300">{quoteStrip}</span>
+                <span className="text-zinc-800">{quoteStrip}</span>
               </div>
             </div>
           ) : null}
@@ -172,8 +172,8 @@ export function ThreadComposerSheet(props: {
                       onClick={() => toggle(a.slug)}
                       className={`rounded-full px-3 py-1 text-xs border ${
                         picked.includes(a.slug)
-                          ? "border-emerald-500/60 bg-emerald-500/10 text-emerald-200"
-                          : "border-zinc-700 text-zinc-400"
+                          ? "border-sky-500/60 bg-sky-500/10 text-sky-800"
+                          : "border-zinc-300 text-zinc-600"
                       }`}
                     >
                       {a.name}
@@ -189,7 +189,7 @@ export function ThreadComposerSheet(props: {
                     step={0.01}
                     value={axisMaxDist}
                     onChange={(e) => setAxisMaxDist(Number(e.target.value))}
-                    className="w-full accent-emerald-500"
+                    className="w-full accent-sky-500"
                   />
                   <span className="text-[11px] text-zinc-600">±{axisMaxDist.toFixed(2)} вокруг вашей позиции</span>
                 </label>

@@ -92,7 +92,7 @@ export function ChatComposer({
   const EmojiButton = showEmojiButton ? (
     <button
       type="button"
-      className="h-9 w-9 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-600 text-lg leading-none flex items-center justify-center shrink-0"
+      className="h-9 w-9 rounded-lg bg-zinc-50 border border-zinc-200 hover:border-sky-300 hover:bg-sky-50 text-lg leading-none flex items-center justify-center shrink-0"
       onClick={() => setEmojiOpen((v) => !v)}
       aria-label="Смайлы"
       disabled={disabled}
@@ -108,7 +108,7 @@ export function ChatComposer({
           <button
             key={s}
             type="button"
-            className="text-lg leading-none px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 hover:border-zinc-600"
+            className="text-lg leading-none px-1.5 py-0.5 rounded-md bg-white border border-zinc-200 hover:border-sky-300"
             onClick={() => {
               insertAtCursor(s);
               setEmojiOpen(false);
@@ -123,7 +123,7 @@ export function ChatComposer({
 
   return (
     <div
-      className="border-t border-white/[0.06] bg-zinc-950/90 backdrop-blur-md p-4 flex flex-col gap-2 shrink-0 supports-[backdrop-filter]:bg-zinc-950/75"
+      className="border-t border-zinc-200 bg-white/95 backdrop-blur-md p-4 flex flex-col gap-2 shrink-0 supports-[backdrop-filter]:bg-white/90"
       style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
     >
       {file ? (
@@ -131,7 +131,7 @@ export function ChatComposer({
           <input
             ref={fileRef}
             type="file"
-            className="min-w-0 flex-1 text-xs text-zinc-400 file:mr-2 file:rounded file:border-0 file:bg-zinc-800 file:px-2 file:py-1"
+            className="min-w-0 flex-1 text-xs text-zinc-600 file:mr-2 file:rounded file:border-0 file:bg-sky-100 file:px-2 file:py-1 file:text-sky-900"
             accept={file.accept}
             disabled={Boolean(disabled || file.disabled)}
             onChange={(e) => file.onPick(e.target.files?.[0] ?? null)}
@@ -146,7 +146,7 @@ export function ChatComposer({
         <textarea
           ref={inputRef}
           rows={1}
-          className="flex-1 rounded-lg bg-zinc-900 border border-zinc-700 px-3 py-2 text-sm leading-5 resize-none overflow-hidden"
+          className="flex-1 rounded-lg bg-zinc-50 border border-zinc-200 px-3 py-2 text-sm leading-5 text-zinc-900 placeholder:text-zinc-400 resize-none overflow-hidden"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
@@ -164,7 +164,7 @@ export function ChatComposer({
         <button
           type="button"
           disabled={Boolean(disabled || !value.trim())}
-          className="rounded-lg bg-emerald-500 text-zinc-950 px-4 py-2 text-sm font-medium disabled:opacity-40"
+          className="rounded-lg bg-sky-400 text-white px-4 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-40"
           onClick={() => sendAndReset()}
         >
           Отправить

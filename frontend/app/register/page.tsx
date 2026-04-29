@@ -73,7 +73,7 @@ export default function RegisterPage() {
           <label className="flex items-start gap-3 text-sm text-zinc-400 cursor-pointer">
             <input
               type="checkbox"
-              className="mt-1 h-4 w-4 rounded border-zinc-600 bg-zinc-900 text-emerald-500 focus:ring-emerald-500/40"
+              className="mt-1 h-4 w-4 rounded border-zinc-300 bg-white text-sky-500 focus:ring-sky-400/50"
               checked={acceptLegal}
               onChange={(e) => setAcceptLegal(e.target.checked)}
             />

@@ -340,7 +340,7 @@ export default function ChatPage() {
 
   return (
     <main className="mm-page-chat">
-      <header className="border-b border-white/[0.06] bg-zinc-950/80 backdrop-blur-md px-4 py-3.5 flex items-center gap-4 shrink-0">
+      <header className="border-b border-zinc-200 bg-white/95 backdrop-blur-md px-4 py-3.5 flex items-center gap-4 shrink-0">
         <Link href="/conversations" className="text-zinc-500 text-sm">
           ←
         </Link>
@@ -360,7 +360,7 @@ export default function ChatPage() {
         ) : null}
         <div className="flex flex-col min-w-0 flex-1">
           {otherUserId != null ? (
-            <Link href={`/users/${otherUserId}`} className="font-medium truncate hover:text-emerald-300">
+            <Link href={`/users/${otherUserId}`} className="font-medium truncate text-zinc-900 hover:text-sky-700">
               {peerName || "Чат"}
             </Link>
           ) : (
@@ -392,9 +392,9 @@ export default function ChatPage() {
         </div>
       </header>
       {reportOpen && otherUserId != null && (
-        <div className="border-b border-zinc-800 px-4 py-3 space-y-2 bg-zinc-900/50">
+        <div className="border-b border-zinc-200 px-4 py-3 space-y-2 bg-sky-50/80">
           <textarea
-            className="w-full rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-xs min-h-[64px]"
+            className="w-full rounded-lg bg-white border border-zinc-200 px-3 py-2 text-xs text-zinc-900 min-h-[64px]"
             value={reportReason}
             onChange={(e) => setReportReason(e.target.value)}
             placeholder="Опишите нарушение"
@@ -466,18 +466,18 @@ export default function ChatPage() {
         )}
         <div ref={messagesEndRef} className="h-px w-full shrink-0" aria-hidden />
       </div>
-      {infoMsg && <p className="px-4 text-emerald-400/90 text-sm shrink-0">{infoMsg}</p>}
+      {infoMsg && <p className="px-4 text-sky-700 text-sm shrink-0">{infoMsg}</p>}
       {error && <p className="px-4 text-red-400 text-sm shrink-0">{error}</p>}
       <form onSubmit={send} className="contents">
         {replyTo && (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-xs">
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs">
             <div className="min-w-0">
               <span className="text-zinc-500">Ответ на: </span>
-              <span className="text-zinc-300 line-clamp-2">{replyTo.body_snippet}</span>
+              <span className="text-zinc-700 line-clamp-2">{replyTo.body_snippet}</span>
             </div>
             <button
               type="button"
-              className="text-zinc-500 hover:text-zinc-300 shrink-0"
+              className="text-zinc-500 hover:text-zinc-700 shrink-0"
               onClick={() => setReplyTo(null)}
               aria-label="Отменить ответ"
             >

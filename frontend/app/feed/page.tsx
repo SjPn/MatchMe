@@ -57,7 +57,7 @@ function FeedAvatar({ name, url }: { name: string; url?: string | null }) {
   const showImg = Boolean(src && !broken);
   const initials = initialsFrom(name);
   return (
-    <div className="h-14 w-14 rounded-full overflow-hidden border border-emerald-500/20 ring-2 ring-black/20 shrink-0 bg-gradient-to-br from-emerald-900/70 to-zinc-900 flex items-center justify-center shadow-lg shadow-black/30">
+    <div className="h-14 w-14 rounded-full overflow-hidden border border-sky-200 ring-2 ring-sky-100 shrink-0 bg-gradient-to-br from-sky-100 to-sky-50 flex items-center justify-center shadow-md shadow-sky-900/10">
       {showImg ? (
         <Image
           src={src}
@@ -69,7 +69,7 @@ function FeedAvatar({ name, url }: { name: string; url?: string | null }) {
           onError={() => setBroken(true)}
         />
       ) : (
-        <span className="text-sm font-semibold text-emerald-100/90">{initials}</span>
+        <span className="text-sm font-semibold text-sky-800">{initials}</span>
       )}
     </div>
   );
@@ -246,7 +246,7 @@ export default function FeedPage() {
     return (
       <main className="min-h-screen flex items-center justify-center text-zinc-500">
         <span className="inline-flex items-center gap-2 text-sm">
-          <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500/30 border-t-emerald-400" />
+          <span className="h-4 w-4 animate-spin rounded-full border-2 border-sky-500/30 border-t-sky-400" />
           Загрузка…
         </span>
       </main>
@@ -302,12 +302,12 @@ export default function FeedPage() {
 
       <button
         type="button"
-        className="mt-5 w-full text-left mm-card-static py-4 hover:border-emerald-500/20 transition-colors"
+        className="mt-5 w-full text-left mm-card-static py-4 hover:border-sky-500/20 transition-colors"
         onClick={() => setPrefsOpen(!prefsOpen)}
       >
-        <span className="text-zinc-300">Настройки ленты (веса осей)</span>
+        <span className="text-zinc-700">Настройки ленты (веса осей)</span>
         {hasCustomPrefs ? (
-          <span className="block text-xs text-emerald-500/90 mt-1">активны свои правила сортировки</span>
+          <span className="block text-xs text-sky-500/90 mt-1">активны свои правила сортировки</span>
         ) : (
           <span className="block text-xs text-zinc-600 mt-1">по умолчанию — среднее по всем осям</span>
         )}
@@ -338,7 +338,7 @@ export default function FeedPage() {
                   onChange={(e) =>
                     setWeightsDraft((w) => ({ ...w, [ax.slug]: Number(e.target.value) }))
                   }
-                  className="w-full accent-emerald-500"
+                  className="w-full accent-sky-500"
                 />
               </li>
             ))}
@@ -404,8 +404,8 @@ export default function FeedPage() {
       ) : null}
 
       {likeInbox.length ? (
-        <section className="mt-8 rounded-2xl border border-emerald-500/25 bg-gradient-to-br from-emerald-950/40 to-zinc-900/30 p-5 shadow-mm-card">
-          <p className="text-sm text-emerald-200 font-semibold">Вам поставили лайк</p>
+        <section className="mt-8 rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-5 shadow-mm-card">
+          <p className="text-sm text-sky-900 font-semibold">Вам поставили лайк</p>
           <p className="text-xs text-zinc-500 mt-1">
             Открой профиль и лайкни в ответ — при взаимности появится кнопка «Начать чат».
           </p>
@@ -414,7 +414,7 @@ export default function FeedPage() {
               <Link
                 key={x.from_user_id}
                 href={`/users/${x.from_user_id}`}
-                className="rounded-full border border-zinc-700/80 bg-zinc-900/70 px-3 py-1.5 text-xs hover:border-emerald-500/35 hover:bg-zinc-800/80 transition-colors"
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs text-zinc-800 hover:border-sky-300 hover:bg-sky-50 transition-colors"
               >
                 {x.from_display_name || `Пользователь #${x.from_user_id}`}
               </Link>
@@ -437,7 +437,7 @@ export default function FeedPage() {
             <div className="flex justify-between items-start gap-4">
               <div>
                 <p className="text-zinc-500 text-xs uppercase tracking-wide">Совпадение</p>
-                <p className="text-4xl font-bold text-emerald-400">{c.match_percent}%</p>
+                <p className="text-4xl font-bold text-sky-400">{c.match_percent}%</p>
                 {c.weighted_used ? (
                   <p className="text-xs text-zinc-500 mt-1">
                     базовое среднее: {c.base_match_percent}%
@@ -451,7 +451,7 @@ export default function FeedPage() {
             {c.keyword_hit ? (
               <p className="mt-3 text-xs text-zinc-500">
                 Совпадение по поиску ({c.keyword_hit.field}):{" "}
-                <span className="text-zinc-300">{c.keyword_hit.snippet}</span>
+                <span className="text-zinc-700">{c.keyword_hit.snippet}</span>
               </p>
             ) : null}
 
@@ -470,10 +470,10 @@ export default function FeedPage() {
               </ul>
             ) : null}
 
-            <ul className="mt-3 space-y-1 text-sm text-zinc-300">
+            <ul className="mt-3 space-y-1 text-sm text-zinc-700">
               {c.agreements.map((x) => (
                 <li key={x.slug + x.detail} className="flex gap-2">
-                  <span className="text-emerald-500">✓</span>
+                  <span className="text-sky-500">✓</span>
                   {x.detail}
                 </li>
               ))}
@@ -491,14 +491,14 @@ export default function FeedPage() {
             {searchActive.trim() ? (
               <>
                 Никого по заданным условиям — ослабь поиск или{" "}
-                <button type="button" className="underline text-emerald-500/90" onClick={() => { setSearch(""); setSearchActive(""); }}>
+                <button type="button" className="underline text-sky-500/90" onClick={() => { setSearch(""); setSearchActive(""); }}>
                   сбрось фильтр «о себе»
                 </button>
                 .
               </>
             ) : (
               <>
-                <span className="block text-zinc-300">
+                <span className="block text-zinc-600">
                   Лента <strong>не отбирает</strong> людей по схожести профиля — в неё попадают{" "}
                   <strong>все остальные</strong> пользователи в той же базе, что и API. Пустой список значит: в этой
                   базе для вашего аккаунта нет других строк пользователей (или мешает поиск выше).

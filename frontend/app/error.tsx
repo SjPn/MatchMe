@@ -14,8 +14,8 @@ export default function Error({
   }, [error]);
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 text-zinc-100">
-      <p className="text-sm font-medium text-red-400/95 mb-2">Что-то пошло не так</p>
+    <main className="min-h-screen flex flex-col items-center justify-center px-6 text-zinc-900 bg-white">
+      <p className="text-sm font-medium text-red-600 mb-2">Что-то пошло не так</p>
       <p className="text-xs text-zinc-500 text-center max-w-md mb-8 leading-relaxed">
         {error.message || "Не удалось отобразить страницу."}
       </p>

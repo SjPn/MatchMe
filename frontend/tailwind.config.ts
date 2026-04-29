@@ -24,8 +24,8 @@ const config: Config = {
       },
       boxShadow: {
         "mm-card":
-          "0 0 0 1px rgba(255,255,255,0.04) inset, 0 8px 32px -12px rgba(0,0,0,0.55)",
-        "mm-nav": "0 -8px 32px -8px rgba(0,0,0,0.45)",
+          "0 0 0 1px rgba(228, 228, 231, 0.9) inset, 0 8px 32px -12px rgba(15, 23, 42, 0.08)",
+        "mm-nav": "0 -8px 32px -8px rgba(15, 23, 42, 0.06)",
       },
       transitionDuration: {
         DEFAULT: "180ms",

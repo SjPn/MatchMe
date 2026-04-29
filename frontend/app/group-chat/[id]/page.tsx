@@ -247,7 +247,7 @@ export default function GroupChatPage() {
 
   if (!ready && !error) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-400">
+      <main className="min-h-screen flex items-center justify-center bg-zinc-50 text-zinc-500">
         Загрузка…
       </main>
     );
@@ -255,7 +255,7 @@ export default function GroupChatPage() {
 
   if (error && !room) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-red-400 px-6">
+      <main className="min-h-screen flex flex-col items-center justify-center bg-zinc-50 text-red-600 px-6">
         {error}
         <Link href="/conversations" className="mt-4 text-zinc-500 underline">
           К диалогам
@@ -266,7 +266,7 @@ export default function GroupChatPage() {
 
   return (
     <main className="mm-page-chat">
-      <header className="border-b border-white/[0.06] bg-zinc-950/80 backdrop-blur-md px-4 py-3 shrink-0 space-y-2">
+      <header className="border-b border-zinc-200 bg-white/95 backdrop-blur-md px-4 py-3 shrink-0 space-y-2">
         <div className="flex items-center gap-4">
           <Link href="/conversations" className="text-zinc-500 text-sm">
             ←
@@ -286,14 +286,14 @@ export default function GroupChatPage() {
             </button>
           ) : null}
           <div className="min-w-0 flex-1">
-            <p className="font-medium truncate">{room?.title ?? "Группа"}</p>
+            <p className="font-medium truncate text-zinc-900">{room?.title ?? "Группа"}</p>
             <p className="text-[10px] text-zinc-500">
               Видны только псевдонимы. Почта и данные аккаунта скрыты.
             </p>
           </div>
         </div>
         {room?.platonic_mission ? (
-          <p className="text-xs text-zinc-300 border border-zinc-800 rounded-lg px-2 py-1.5 leading-relaxed">
+          <p className="text-xs text-zinc-700 border border-zinc-200 rounded-lg px-2 py-1.5 leading-relaxed bg-zinc-50">
             {room.platonic_mission}
           </p>
         ) : null}
@@ -301,19 +301,19 @@ export default function GroupChatPage() {
           <p className="text-[10px] text-zinc-500">{room.cohort_size_note}</p>
         ) : null}
         {room?.weekly_theme ? (
-          <p className="text-xs text-zinc-400 border border-zinc-800 rounded-lg px-2 py-1.5">
+          <p className="text-xs text-zinc-700 border border-zinc-200 rounded-lg px-2 py-1.5 bg-white">
             <span className="text-zinc-500">Тема недели · </span>
             {room.weekly_theme}
           </p>
         ) : null}
         {room?.daily_prompt ? (
-          <p className="text-xs text-emerald-400/90 border border-emerald-500/30 rounded-lg px-2 py-1.5">
+          <p className="text-xs text-sky-800 border border-sky-200 rounded-lg px-2 py-1.5 bg-sky-50">
             <span className="text-zinc-500">Вопрос дня · </span>
             {room.daily_prompt}
           </p>
         ) : null}
         {room?.shared_traits?.length ? (
-          <div className="text-xs text-zinc-400 border border-zinc-800 rounded-lg px-2 py-1.5 space-y-1">
+          <div className="text-xs text-zinc-700 border border-zinc-200 rounded-lg px-2 py-1.5 space-y-1 bg-zinc-50">
             <span className="text-zinc-500">Общее для вас в этой комнате · </span>
             <ul className="list-disc list-inside space-y-0.5">
               {room.shared_traits.map((t) => (
@@ -325,14 +325,14 @@ export default function GroupChatPage() {
         <div className="flex flex-wrap gap-2 text-[10px]">
           <button
             type="button"
-            className="rounded border border-zinc-700 px-2 py-1 text-zinc-400 hover:border-zinc-500"
+            className="rounded border border-zinc-300 px-2 py-1 text-zinc-600 hover:border-sky-400"
             onClick={() => void toggleMute()}
           >
             {room?.you_muted ? "Включить уведомления (флаг)" : "Тихий режим"}
           </button>
           <button
             type="button"
-            className="rounded border border-zinc-800 px-2 py-1 text-zinc-500 hover:border-red-900/60 hover:text-red-400"
+            className="rounded border border-zinc-300 px-2 py-1 text-zinc-600 hover:border-red-300 hover:text-red-600"
             onClick={() => void leave()}
           >
             Выйти
@@ -341,14 +341,14 @@ export default function GroupChatPage() {
       </header>
 
       {room?.members?.length ? (
-        <div className="border-b border-zinc-800 px-4 py-2 text-xs">
+        <div className="border-b border-zinc-200 px-4 py-2 text-xs bg-zinc-50/80">
           <p className="text-zinc-500 mb-2">Участники</p>
           <div className="flex flex-wrap gap-2">
             {room.members.map((m) => (
               <Link
                 key={m.user_id}
                 href={`/users/${m.user_id}`}
-                className="rounded-full border border-zinc-800 bg-zinc-900/60 px-3 py-1 hover:border-zinc-600 text-zinc-300"
+                className="rounded-full border border-zinc-200 bg-white px-3 py-1 hover:border-sky-300 text-zinc-800"
               >
                 {m.display_name || `#${m.user_id}`}
               </Link>
@@ -361,8 +361,8 @@ export default function GroupChatPage() {
       ) : null}
 
       {room?.community_rules?.length ? (
-        <details className="border-b border-zinc-800 px-4 py-2 text-xs text-zinc-500">
-          <summary className="cursor-pointer text-zinc-400">Правила сообщества</summary>
+        <details className="border-b border-zinc-200 px-4 py-2 text-xs text-zinc-600">
+          <summary className="cursor-pointer text-zinc-700">Правила сообщества</summary>
           <ul className="mt-2 space-y-1 list-disc pl-4">
             {room.community_rules.map((r) => (
               <li key={r}>{r}</li>
@@ -417,10 +417,10 @@ export default function GroupChatPage() {
       </div>
 
       {reportFor !== null && (
-        <div className="border-t border-zinc-800 px-4 py-3 space-y-2 bg-zinc-900/80">
-          <p className="text-xs text-zinc-400">Жалоба на сообщение #{reportFor}</p>
+        <div className="border-t border-zinc-200 px-4 py-3 space-y-2 bg-zinc-50">
+          <p className="text-xs text-zinc-600">Жалоба на сообщение #{reportFor}</p>
           <input
-            className="w-full rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm"
+            className="w-full rounded-lg bg-white border border-zinc-200 px-3 py-2 text-sm text-zinc-900"
             value={reportReason}
             onChange={(e) => setReportReason(e.target.value)}
             placeholder="Кратко, что не так"
@@ -450,11 +450,11 @@ export default function GroupChatPage() {
       {error && <p className="px-4 text-red-400 text-sm shrink-0">{error}</p>}
       <form onSubmit={send} className="contents">
         {replyTo && (
-          <div className="flex items-center justify-between gap-2 rounded-lg border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-xs">
-            <span className="text-zinc-300 line-clamp-2">Ответ: {replyTo.body_snippet}</span>
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs">
+            <span className="text-zinc-700 line-clamp-2">Ответ: {replyTo.body_snippet}</span>
             <button
               type="button"
-              className="text-zinc-500 shrink-0"
+              className="text-zinc-500 hover:text-zinc-800 shrink-0"
               onClick={() => setReplyTo(null)}
             >
               ✕

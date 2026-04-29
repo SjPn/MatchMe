@@ -58,7 +58,7 @@ function Avatar({ name, url }: { name: string; url?: string | null }) {
   const [broken, setBroken] = useState(false);
   const showImg = Boolean(src && !broken);
   return (
-    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-emerald-500/20 ring-2 ring-black/20 bg-gradient-to-br from-emerald-900/70 to-zinc-900 shadow-lg shadow-black/30 flex items-center justify-center">
+    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border border-sky-200 ring-2 ring-sky-100 bg-gradient-to-br from-sky-100 to-sky-50 shadow-md shadow-sky-900/10 flex items-center justify-center">
       {showImg ? (
         <Image
           src={src}
@@ -70,7 +70,7 @@ function Avatar({ name, url }: { name: string; url?: string | null }) {
           onError={() => setBroken(true)}
         />
       ) : (
-        <span className="text-base font-semibold text-emerald-100/90">{initials}</span>
+        <span className="text-base font-semibold text-sky-800">{initials}</span>
       )}
     </div>
   );
@@ -217,7 +217,7 @@ export default function UserComparePage() {
 
   if (error && !data) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-red-400 px-6">
+      <main className="min-h-screen flex items-center justify-center bg-zinc-50 text-red-600 px-6">
         {error}
       </main>
     );
@@ -225,7 +225,7 @@ export default function UserComparePage() {
 
   if (!data) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-400">
+      <main className="min-h-screen flex items-center justify-center bg-zinc-50 text-zinc-500">
         Загрузка…
       </main>
     );
@@ -233,7 +233,7 @@ export default function UserComparePage() {
 
   return (
     <main className="mm-page scrollbar-thin">
-      <Link href="/feed" className="text-sm text-zinc-500 hover:text-zinc-300">
+      <Link href="/feed" className="text-sm text-zinc-500 hover:text-sky-700">
         ← Назад
       </Link>
 
@@ -244,7 +244,7 @@ export default function UserComparePage() {
               {userInfo?.display_name ? userInfo.display_name : "Пользователь"}
             </h1>
             <p className="text-sm text-zinc-500 mt-1">Совпадение по ценностям</p>
-            <p className="text-4xl font-bold text-emerald-400 mt-2">{data.match_percent}%</p>
+            <p className="text-4xl font-bold text-sky-400 mt-2">{data.match_percent}%</p>
             {data.weighted_active && data.base_match_percent != null ? (
               <p className="text-xs text-zinc-500 mt-2">
                 Без весов из настроек ленты было бы ~{data.base_match_percent}%
@@ -277,7 +277,7 @@ export default function UserComparePage() {
         ) : null}
 
         {data.match_headline ? (
-          <p className="mt-4 text-sm text-zinc-300 leading-relaxed border-l-2 border-emerald-500/40 pl-3">
+          <p className="mt-4 text-sm text-zinc-700 leading-relaxed border-l-2 border-sky-300 pl-3">
             {data.match_headline}
           </p>
         ) : null}
@@ -293,14 +293,14 @@ export default function UserComparePage() {
       {/* moved into the profile header card above */}
 
       {userInfo?.about_me ? (
-        <section className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+        <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
           <p className="text-xs uppercase tracking-wide text-zinc-500 mb-2">О человеке</p>
-          <p className="text-sm text-zinc-300 whitespace-pre-wrap">{userInfo.about_me}</p>
+          <p className="text-sm text-zinc-700 whitespace-pre-wrap">{userInfo.about_me}</p>
         </section>
       ) : null}
 
       {(data.their_mind_lines ?? []).length ? (
-        <section className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+        <section className="mt-6 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
           <p className="text-xs uppercase tracking-wide text-zinc-500 mb-2">Как этот человек думает</p>
           <div className="flex flex-wrap gap-2">
             {(data.their_mind_lines ?? [])
@@ -309,12 +309,12 @@ export default function UserComparePage() {
               .map(({ raw, p }) => (
                 <span
                   key={raw}
-                  className="inline-flex items-center gap-2 rounded-full border border-zinc-700/80 bg-zinc-950/30 px-3 py-1 text-xs text-zinc-300"
+                  className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-800"
                   title={raw}
                 >
                   <span className="text-zinc-400">{p!.axis}</span>
                   <span className="text-zinc-600">·</span>
-                  <span className="text-emerald-200/90">{p!.position}</span>
+                  <span className="text-sky-800/90">{p!.position}</span>
                 </span>
               ))}
           </div>
@@ -332,7 +332,7 @@ export default function UserComparePage() {
               onClick={() => setActivityTab("posts")}
               className={`rounded-full px-3 py-1 text-xs border ${
                 activityTab === "posts"
-                  ? "border-emerald-500/45 bg-emerald-500/10 text-emerald-200"
+                  ? "border-sky-500/45 bg-sky-500/10 text-sky-800"
                   : "border-zinc-700 text-zinc-400"
               }`}
             >
@@ -343,7 +343,7 @@ export default function UserComparePage() {
               onClick={() => setActivityTab("replies")}
               className={`rounded-full px-3 py-1 text-xs border ${
                 activityTab === "replies"
-                  ? "border-emerald-500/45 bg-emerald-500/10 text-emerald-200"
+                  ? "border-sky-500/45 bg-sky-500/10 text-sky-800"
                   : "border-zinc-700 text-zinc-400"
               }`}
             >
@@ -379,24 +379,24 @@ export default function UserComparePage() {
       </section>
 
       <section className="mt-8">
-        <details className="rounded-2xl border border-zinc-800 bg-zinc-900/25 p-4">
+        <details className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
           <summary className="cursor-pointer select-none text-sm font-medium text-zinc-200">
             Показать детали по осям
           </summary>
           <div className="mt-4 space-y-8">
             {(data.shared_traits ?? []).length ? (
               <section>
-                <h2 className="text-sm uppercase tracking-wide text-emerald-500 mb-3">Общие черты</h2>
+                <h2 className="text-sm uppercase tracking-wide text-sky-500 mb-3">Общие черты</h2>
                 <ul className="space-y-2">
                   {(data.shared_traits ?? []).map((t) => (
                     <li
                       key={t.slug + t.summary}
-                      className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-sm space-y-1"
+                      className="rounded-lg bg-sky-500/10 border border-sky-500/30 px-3 py-2 text-sm space-y-1"
                     >
-                      <p className="font-medium text-emerald-200/90">{t.axis}</p>
-                      <p className="text-zinc-300 text-xs leading-relaxed">{t.summary}</p>
+                      <p className="font-medium text-sky-800/90">{t.axis}</p>
+                      <p className="text-zinc-600 text-xs leading-relaxed">{t.summary}</p>
                       {t.strength === "high" ? (
-                        <span className="text-[10px] uppercase tracking-wide text-emerald-500/80">сильное сходство</span>
+                        <span className="text-[10px] uppercase tracking-wide text-sky-500/80">сильное сходство</span>
                       ) : null}
                     </li>
                   ))}
@@ -405,12 +405,12 @@ export default function UserComparePage() {
             ) : null}
 
             <section>
-              <h2 className="text-sm uppercase tracking-wide text-emerald-500/60 mb-3">Кратко по осям</h2>
+              <h2 className="text-sm uppercase tracking-wide text-sky-500/60 mb-3">Кратко по осям</h2>
               <ul className="space-y-2">
                 {data.agreements.map((x) => (
                   <li
                     key={x.slug + x.detail}
-                    className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 px-3 py-2 text-sm"
+                    className="rounded-lg bg-sky-500/10 border border-sky-500/30 px-3 py-2 text-sm"
                   >
                     {x.detail}
                   </li>
@@ -455,7 +455,7 @@ export default function UserComparePage() {
         </details>
       </section>
 
-      {msg && <p className="mt-6 text-sm text-emerald-400">{msg}</p>}
+      {msg && <p className="mt-6 text-sm text-sky-400">{msg}</p>}
       {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
 
       <div className="mt-10 flex flex-col gap-3">
@@ -467,7 +467,7 @@ export default function UserComparePage() {
           <button
             type="button"
             onClick={onLike}
-            className="rounded-xl bg-emerald-500 text-zinc-950 font-medium py-3 px-4 hover:bg-emerald-400"
+            className="rounded-xl bg-sky-400 text-white font-medium py-3 px-4 hover:bg-sky-500"
           >
             Интересно (лайк)
           </button>
@@ -498,10 +498,10 @@ export default function UserComparePage() {
       </div>
 
       {reportOpen && (
-        <div className="mt-6 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-3">
+        <div className="mt-6 rounded-xl border border-zinc-200 bg-white p-4 space-y-3 shadow-sm">
           <p className="text-sm text-zinc-400">Кратко опишите проблему (для модерации).</p>
           <textarea
-            className="w-full rounded-lg bg-zinc-950 border border-zinc-700 px-3 py-2 text-sm min-h-[80px]"
+            className="w-full rounded-lg bg-zinc-50 border border-zinc-200 px-3 py-2 text-sm text-zinc-900 min-h-[80px]"
             value={reportReason}
             onChange={(e) => setReportReason(e.target.value)}
             placeholder="Текст жалобы"

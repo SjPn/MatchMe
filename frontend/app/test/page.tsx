@@ -207,7 +207,7 @@ function TestPageInner() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-400">
+      <main className="min-h-screen flex items-center justify-center bg-zinc-50 text-zinc-500">
         Загрузка…
       </main>
     );
@@ -215,11 +215,11 @@ function TestPageInner() {
 
   if (!questions.length) {
     return (
-      <main className="min-h-screen flex flex-col items-center justify-center px-6 bg-zinc-950 text-zinc-100 gap-4">
+      <main className="min-h-screen flex flex-col items-center justify-center px-6 bg-white text-zinc-900 gap-4">
         <p className="text-center text-zinc-400">
           Нет вопросов. Запусти миграции и сид: см. README в корне репозитория.
         </p>
-        <Link href="/" className="text-emerald-400 underline">
+        <Link href="/" className="text-sky-400 underline">
           На главную
         </Link>
       </main>
@@ -249,7 +249,7 @@ function TestPageInner() {
       ) : null}
       <div className="h-1 w-full bg-zinc-800 rounded overflow-hidden mb-6">
         <div
-          className="h-full bg-emerald-500 transition-all"
+          className="h-full bg-sky-500 transition-all"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -261,7 +261,7 @@ function TestPageInner() {
       {q.qtype === "likert" && isBipolarLikert(q) && (
         <div className="mt-8">
           <div className="flex justify-between gap-3 text-xs text-zinc-400 leading-tight mb-2">
-            <span className="text-left max-w-[42%] text-emerald-400/90">{q.likert_left_label}</span>
+            <span className="text-left max-w-[42%] text-sky-400/90">{q.likert_left_label}</span>
             <span className="text-right max-w-[42%] text-sky-400/90">{q.likert_right_label}</span>
           </div>
           <div className="relative pt-1">
@@ -282,7 +282,7 @@ function TestPageInner() {
                   >
                     <div
                       className={`w-0.5 rounded-full transition-colors ${
-                        active ? "h-3 bg-emerald-400" : "h-2 bg-zinc-600"
+                        active ? "h-3 bg-sky-400" : "h-2 bg-zinc-600"
                       }`}
                     />
                     {isNeutralTickStep(q, step) && (
@@ -304,7 +304,7 @@ function TestPageInner() {
                 const pos = Number(e.target.value);
                 setCurrentAnswer({ value_numeric: sliderToStored(q, pos) });
               }}
-              className="relative z-10 w-full accent-emerald-500 h-3"
+              className="relative z-10 w-full accent-sky-500 h-3"
             />
           </div>
           <p className="mt-6 text-sm text-zinc-300 text-center min-h-[2.5rem] px-1 leading-snug">
@@ -325,10 +325,10 @@ function TestPageInner() {
               onChange={(e) =>
                 setCurrentAnswer({ value_numeric: Number(e.target.value) })
               }
-              className="w-full accent-emerald-500"
+              className="w-full accent-sky-500"
             />
           </label>
-          <p className="mt-4 text-3xl font-semibold text-emerald-400 text-center">
+          <p className="mt-4 text-3xl font-semibold text-sky-400 text-center">
             {current?.value_numeric ?? q.likert_min}
           </p>
         </div>
@@ -341,7 +341,7 @@ function TestPageInner() {
             onClick={() => setCurrentAnswer({ value_choice: "a" })}
             className={`rounded-xl border py-3 px-4 text-left transition ${
               current?.value_choice === "a"
-                ? "border-emerald-500 bg-emerald-500/10"
+                ? "border-sky-500 bg-sky-500/10"
                 : "border-zinc-700 hover:border-zinc-500"
             }`}
           >
@@ -352,7 +352,7 @@ function TestPageInner() {
             onClick={() => setCurrentAnswer({ value_choice: "b" })}
             className={`rounded-xl border py-3 px-4 text-left transition ${
               current?.value_choice === "b"
-                ? "border-emerald-500 bg-emerald-500/10"
+                ? "border-sky-500 bg-sky-500/10"
                 : "border-zinc-700 hover:border-zinc-500"
             }`}
           >
@@ -378,7 +378,7 @@ function TestPageInner() {
             type="button"
             disabled={!canNext}
             onClick={() => setIdx((i) => i + 1)}
-            className="flex-1 rounded-xl bg-emerald-500 text-zinc-950 font-medium py-3 disabled:opacity-40"
+            className="flex-1 rounded-xl bg-sky-400 text-white font-medium py-3 hover:bg-sky-500 disabled:opacity-40"
           >
             Далее
           </button>
@@ -387,7 +387,7 @@ function TestPageInner() {
             type="button"
             disabled={!canNext}
             onClick={finish}
-            className="flex-1 rounded-xl bg-emerald-500 text-zinc-950 font-medium py-3 disabled:opacity-40"
+            className="flex-1 rounded-xl bg-sky-400 text-white font-medium py-3 hover:bg-sky-500 disabled:opacity-40"
           >
             Готово
           </button>
@@ -401,7 +401,7 @@ export default function TestPage() {
   return (
     <Suspense
       fallback={
-        <main className="min-h-screen flex items-center justify-center bg-zinc-950 text-zinc-400">
+        <main className="min-h-screen flex items-center justify-center bg-zinc-50 text-zinc-500">
           Загрузка…
         </main>
       }

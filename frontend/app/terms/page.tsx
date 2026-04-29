@@ -3,13 +3,13 @@ import Link from "next/link";
 export default function TermsPage() {
   return (
     <main className="mm-page text-sm leading-relaxed scrollbar-thin">
-      <Link href="/register" className="text-sm text-zinc-500 hover:text-emerald-400/90 transition-colors">
+      <Link href="/register" className="text-sm text-zinc-500 hover:text-sky-700 transition-colors">
         ← К регистрации
       </Link>
       <h1 className="mm-h1 mt-8">Условия использования (MVP)</h1>
       <p className="text-zinc-500 mt-2 text-xs">Черновик для демонстрации продукта. Перед публичным запуском согласуйте текст с юристом.</p>
 
-      <section className="mt-8 space-y-4 text-zinc-300">
+      <section className="mt-8 space-y-4 text-zinc-700">
         <p>
           MatchMe предоставляет веб-сервис знакомства и общения людей на основе ответов на вопросы и расчёта
           совместимости. Сервис поставляется «как есть», без гарантий безошибочной работы и постоянной доступности.

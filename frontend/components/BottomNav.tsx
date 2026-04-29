@@ -17,7 +17,7 @@ const items: {
     match: (p) => p === "/timeline" || p.startsWith("/posts/") || p.startsWith("/threads"),
     icon: (active) => (
       <svg
-        className={`h-6 w-6 ${active ? "text-emerald-400" : "text-zinc-500"}`}
+        className={`h-6 w-6 ${active ? "text-sky-500" : "text-zinc-500"}`}
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -38,7 +38,7 @@ const items: {
     match: (p) => p === "/feed" || p.startsWith("/users/"),
     icon: (active) => (
       <svg
-        className={`h-6 w-6 ${active ? "text-emerald-400" : "text-zinc-500"}`}
+        className={`h-6 w-6 ${active ? "text-sky-500" : "text-zinc-500"}`}
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -59,7 +59,7 @@ const items: {
     match: (p) => p.startsWith("/conversations") || p.startsWith("/chat") || p.startsWith("/group-chat"),
     icon: (active) => (
       <svg
-        className={`h-6 w-6 ${active ? "text-emerald-400" : "text-zinc-500"}`}
+        className={`h-6 w-6 ${active ? "text-sky-500" : "text-zinc-500"}`}
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -80,7 +80,7 @@ const items: {
     match: (p) => p.startsWith("/summary"),
     icon: (active) => (
       <svg
-        className={`h-6 w-6 ${active ? "text-emerald-400" : "text-zinc-500"}`}
+        className={`h-6 w-6 ${active ? "text-sky-500" : "text-zinc-500"}`}
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -127,7 +127,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.06] bg-zinc-950/85 px-2 pt-2 shadow-mm-nav backdrop-blur-xl supports-[backdrop-filter]:bg-zinc-950/75"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-200 bg-white/92 px-2 pt-2 shadow-mm-nav backdrop-blur-xl supports-[backdrop-filter]:bg-white/88"
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
       aria-label="Основное меню"
     >
@@ -141,8 +141,8 @@ export function BottomNav() {
               href={item.href}
               className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl py-2 transition-colors ${
                 active
-                  ? "bg-emerald-500/10 text-emerald-300"
-                  : "text-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-300"
+                  ? "bg-sky-100 text-sky-800"
+                  : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700"
               }`}
               aria-current={active ? "page" : undefined}
             >
@@ -157,7 +157,7 @@ export function BottomNav() {
                   </span>
                 ) : null}
               </span>
-              <span className={`text-[11px] font-medium leading-none ${active ? "text-emerald-200" : ""}`}>
+              <span className={`text-[11px] font-medium leading-none ${active ? "text-sky-800" : ""}`}>
                 {item.label}
               </span>
             </Link>

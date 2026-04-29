@@ -3,18 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --background: #0a0a0b;
-  --foreground: #fafafa;
-  --mm-accent: #10b981;
-  --mm-accent-dim: rgba(16, 185, 129, 0.12);
-  --mm-ring: rgba(16, 185, 129, 0.35);
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    --background: #fafafa;
-    --foreground: #171717;
-  }
+  --background: #ffffff;
+  --foreground: #18181b;
+  /* Пастельный синий акцент */
+  --mm-accent: #6ea8dc;
+  --mm-accent-deep: #4f8fc9;
+  --mm-accent-dim: rgba(110, 168, 220, 0.18);
+  --mm-ring: rgba(110, 168, 220, 0.45);
 }
 
 @layer base {
@@ -23,71 +18,68 @@
   }
 
   body {
-    @apply min-h-screen antialiased text-zinc-100;
+    @apply min-h-screen antialiased text-zinc-900;
     font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-    background-color: #070708;
-    background-image: radial-gradient(
-        ellipse 120% 80% at 50% -40%,
-        rgba(16, 185, 129, 0.09),
-        transparent 55%
-      ),
-      radial-gradient(ellipse 80% 50% at 100% 50%, rgba(39, 39, 42, 0.35), transparent 45%),
-      radial-gradient(ellipse 60% 40% at 0% 80%, rgba(39, 39, 42, 0.25), transparent 50%);
+    background-color: var(--background);
+    background-image:
+      radial-gradient(ellipse 120% 80% at 50% -35%, rgba(110, 168, 220, 0.14), transparent 55%),
+      radial-gradient(ellipse 70% 50% at 100% 40%, rgba(186, 230, 253, 0.35), transparent 45%),
+      radial-gradient(ellipse 60% 45% at 0% 85%, rgba(224, 242, 254, 0.45), transparent 50%);
     background-attachment: fixed;
   }
 
   ::selection {
-    @apply bg-emerald-500/30 text-white;
+    @apply bg-sky-200/80 text-zinc-900;
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-emerald-500/45 ring-offset-2 ring-offset-[#070708];
+    @apply outline-none ring-2 ring-sky-400/55 ring-offset-2 ring-offset-white;
   }
 }
 
 @layer components {
   /** Основная колонка приложения (с отступом под нижнюю навигацию) */
   .mm-page {
-    @apply min-h-screen text-zinc-100 px-4 sm:px-6 py-8 max-w-shell lg:max-w-shell-wide mx-auto pb-28;
+    @apply min-h-screen text-zinc-900 px-4 sm:px-6 py-8 max-w-shell lg:max-w-shell-wide mx-auto pb-28;
   }
 
   /** Экран поста обсуждения: фиксированная высота + скролл внутри */
   .mm-page-fixed {
-    @apply flex h-[100dvh] max-h-[100dvh] min-h-0 flex-col overflow-hidden text-zinc-100 px-4 sm:px-6 max-w-shell lg:max-w-shell-wide mx-auto pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))];
+    @apply flex h-[100dvh] max-h-[100dvh] min-h-0 flex-col overflow-hidden text-zinc-900 px-4 sm:px-6 max-w-shell lg:max-w-shell-wide mx-auto pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))];
   }
 
   /** Центрированные формы входа / регистрации */
   .mm-page-auth {
-    @apply min-h-screen flex flex-col justify-center px-6 text-zinc-100 max-w-md mx-auto py-12;
+    @apply min-h-screen flex flex-col justify-center px-6 text-zinc-900 max-w-md mx-auto py-12;
   }
 
   /** Полноэкранный чат (колонка + нижняя навигация) */
   .mm-page-chat {
-    @apply flex h-[100dvh] max-h-[100dvh] min-h-0 flex-col overflow-hidden text-zinc-100 max-w-shell lg:max-w-shell-wide mx-auto pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))];
+    @apply flex h-[100dvh] max-h-[100dvh] min-h-0 flex-col overflow-hidden text-zinc-900 bg-white max-w-shell lg:max-w-shell-wide mx-auto pb-[calc(3.75rem+env(safe-area-inset-bottom,0px))];
   }
 
   /** Онбординг / центрированные шаги */
   .mm-page-centered {
-    @apply min-h-screen flex flex-col justify-center px-4 sm:px-6 text-zinc-100 max-w-shell lg:max-w-shell-wide mx-auto py-16;
+    @apply min-h-screen flex flex-col justify-center px-4 sm:px-6 text-zinc-900 max-w-shell lg:max-w-shell-wide mx-auto py-16;
   }
 
   .mm-h1 {
-    @apply text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-50;
+    @apply text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900;
   }
 
   .mm-h2 {
-    @apply text-xl font-semibold tracking-tight text-zinc-50;
+    @apply text-xl font-semibold tracking-tight text-zinc-900;
   }
 
   .mm-lead {
-    @apply text-sm text-zinc-400 leading-relaxed;
+    @apply text-sm text-zinc-600 leading-relaxed;
   }
 
   .mm-input {
-    @apply w-full rounded-xl bg-zinc-900/90 border border-zinc-700/70 px-3.5 py-2.5 text-sm text-zinc-100
-      placeholder:text-zinc-500 shadow-inner shadow-black/20
+    @apply w-full rounded-xl bg-white border border-zinc-200 px-3.5 py-2.5 text-sm text-zinc-900
+      placeholder:text-zinc-400 shadow-inner shadow-zinc-900/5
       transition-colors
-      focus:border-emerald-500/45 focus:ring-2 focus:ring-emerald-500/25;
+      focus:border-sky-400 focus:ring-2 focus:ring-sky-200;
   }
 
   .mm-input-search {
@@ -95,55 +87,55 @@
   }
 
   .mm-label {
-    @apply flex flex-col gap-1.5 text-sm text-zinc-400;
+    @apply flex flex-col gap-1.5 text-sm text-zinc-600;
   }
 
   .mm-btn-primary {
-    @apply inline-flex items-center justify-center rounded-xl bg-emerald-500 px-4 py-3 text-sm font-medium text-zinc-950
-      shadow-lg shadow-emerald-950/30 transition
-      hover:bg-emerald-400 active:scale-[0.98]
+    @apply inline-flex items-center justify-center rounded-xl bg-sky-400 px-4 py-3 text-sm font-medium text-white
+      shadow-lg shadow-sky-900/15 transition
+      hover:bg-sky-500 active:scale-[0.98]
       disabled:pointer-events-none disabled:opacity-45;
   }
 
   .mm-btn-secondary {
-    @apply inline-flex items-center justify-center rounded-xl border border-zinc-600/90 bg-zinc-900/40 px-4 py-2.5 text-sm font-medium text-zinc-200
-      transition hover:border-zinc-500 hover:bg-zinc-800/60 active:scale-[0.98]
+    @apply inline-flex items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-800
+      transition hover:border-zinc-300 hover:bg-zinc-50 active:scale-[0.98]
       disabled:opacity-45;
   }
 
   .mm-btn-ghost {
-    @apply rounded-lg px-3 py-2 text-sm text-emerald-400/95 underline-offset-2 hover:text-emerald-300 hover:underline;
+    @apply rounded-lg px-3 py-2 text-sm text-sky-700 underline-offset-2 hover:text-sky-800 hover:underline;
   }
 
   .mm-card {
-    @apply rounded-2xl border border-zinc-800/90 bg-zinc-900/45 p-5 shadow-mm-card backdrop-blur-sm
+    @apply rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-mm-card backdrop-blur-sm
       transition-colors duration-200
-      hover:border-emerald-500/25 hover:bg-zinc-900/75
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40;
+      hover:border-sky-300/80 hover:bg-sky-50/40
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400/35;
   }
 
   .mm-card-static {
-    @apply rounded-2xl border border-zinc-800/90 bg-zinc-900/40 p-4 sm:p-5 shadow-mm-card backdrop-blur-sm;
+    @apply rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-5 shadow-mm-card backdrop-blur-sm;
   }
 
   .mm-panel {
-    @apply rounded-2xl border border-zinc-800/80 bg-zinc-900/35 p-4 backdrop-blur-sm;
+    @apply rounded-2xl border border-zinc-200/80 bg-zinc-50/90 p-4 backdrop-blur-sm;
   }
 
   .mm-link {
-    @apply text-emerald-400/95 underline-offset-2 hover:text-emerald-300 hover:underline;
+    @apply text-sky-700 underline-offset-2 hover:text-sky-800 hover:underline;
   }
 
   .mm-badge {
-    @apply inline-flex items-center rounded-full border border-zinc-700/80 bg-zinc-900/60 px-2.5 py-0.5 text-[11px] font-medium text-zinc-400;
+    @apply inline-flex items-center rounded-full border border-zinc-200 bg-zinc-100 px-2.5 py-0.5 text-[11px] font-medium text-zinc-600;
   }
 
   .mm-badge-accent {
-    @apply inline-flex items-center rounded-full border border-emerald-500/35 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-medium text-emerald-300/95;
+    @apply inline-flex items-center rounded-full border border-sky-300/70 bg-sky-100 px-2.5 py-0.5 text-[11px] font-medium text-sky-800;
   }
 
   .mm-divider {
-    @apply border-t border-zinc-800/80;
+    @apply border-t border-zinc-200;
   }
 
   .mm-empty {
@@ -151,11 +143,11 @@
   }
 
   .mm-error {
-    @apply text-sm text-red-400/95;
+    @apply text-sm text-red-600/95;
   }
 
   .mm-success {
-    @apply text-sm text-emerald-400/95;
+    @apply text-sm text-sky-700;
   }
 }
 
@@ -178,6 +170,6 @@
 
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: rgba(63, 63, 70, 0.6) transparent;
+    scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
   }
 }

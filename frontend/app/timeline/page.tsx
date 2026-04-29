@@ -175,7 +175,7 @@ export default function TimelinePage() {
         <button
           type="button"
           className={`rounded-full px-4 py-2 text-xs border ${
-            tab === "all" ? "border-emerald-500/45 bg-emerald-500/10 text-emerald-200" : "border-zinc-700 text-zinc-400"
+            tab === "all" ? "border-sky-500/45 bg-sky-500/10 text-sky-800" : "border-zinc-300 text-zinc-600"
           }`}
           onClick={() => setTab("all")}
         >
@@ -184,7 +184,7 @@ export default function TimelinePage() {
         <button
           type="button"
           className={`rounded-full px-4 py-2 text-xs border ${
-            tab === "topics" ? "border-emerald-500/45 bg-emerald-500/10 text-emerald-200" : "border-zinc-700 text-zinc-400"
+            tab === "topics" ? "border-sky-500/45 bg-sky-500/10 text-sky-800" : "border-zinc-300 text-zinc-600"
           }`}
           onClick={() => setTab("topics")}
         >
@@ -199,7 +199,7 @@ export default function TimelinePage() {
             <button
               type="button"
               className={`rounded-full px-3 py-1 text-xs border ${
-                !topic ? "border-emerald-500/45 bg-emerald-500/10 text-emerald-200" : "border-zinc-700 text-zinc-400"
+                !topic ? "border-sky-500/45 bg-sky-500/10 text-sky-800" : "border-zinc-300 text-zinc-600"
               }`}
               onClick={() => setTopic("")}
             >
@@ -211,8 +211,8 @@ export default function TimelinePage() {
                 type="button"
                 className={`rounded-full px-3 py-1 text-xs border ${
                   topic === a.slug
-                    ? "border-emerald-500/45 bg-emerald-500/10 text-emerald-200"
-                    : "border-zinc-700 text-zinc-400"
+                    ? "border-sky-500/45 bg-sky-500/10 text-sky-800"
+                    : "border-zinc-300 text-zinc-600"
                 }`}
                 onClick={() => setTopic(a.slug)}
               >
